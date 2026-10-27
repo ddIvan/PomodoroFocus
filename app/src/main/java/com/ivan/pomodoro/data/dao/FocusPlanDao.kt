@@ -1,0 +1,34 @@
+package com.ivan.pomodoro.data.dao
+
+import androidx.room.Dao
+import androidx.room.Delete
+import androidx.room.Insert
+import androidx.room.Query
+import androidx.room.Update
+import com.ivan.pomodoro.data.entity.FocusPlan
+import kotlinx.coroutines.flow.Flow
+
+@Dao
+interface FocusPlanDao {
+
+    @Query("SELECT * FROM focus_plans WHERE archived = 0 ORDER BY createdAt ASC")
+    fun observePlans(): Flow<List<FocusPlan>>
+
+    @Query("SELECT * FROM focus_plans WHERE archived = 0 ORDER BY createdAt ASC")
+    suspend fun getPlans(): List<FocusPlan>
+
+    @Query("SELECT * FROM focus_plans WHERE id = :id")
+    suspend fun getById(id: Long): FocusPlan?
+
+    @Insert
+    suspend fun insert(plan: FocusPlan): Long
+
+    @Update
+    suspend fun update(plan: FocusPlan)
+
+    @Query("DELETE FROM focus_plans WHERE id = :id")
+    suspend fun deleteById(id: Long)
+
+    @Query("SELECT COUNT(*) FROM focus_plans WHERE archived = 0")
+    suspend fun count(): Int
+}

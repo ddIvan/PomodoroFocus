@@ -1,0 +1,303 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/pomo_bg"
+    android:fillViewport="true"
+    android:scrollbars="none">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingStart="20dp"
+        android:paddingTop="24dp"
+        android:paddingEnd="20dp"
+        android:paddingBottom="28dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="专注统计"
+            android:textColor="@color/pomo_text"
+            android:textSize="24sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="每一枚番茄，都是专注的证明"
+            android:textColor="@color/pomo_text_second"
+            android:textSize="12sp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <ImageButton
+                android:id="@+id/btnPrevMonth"
+                android:layout_width="38dp"
+                android:layout_height="38dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="上一月"
+                android:src="@drawable/ic_chevron_left"
+                app:tint="@color/pomo_text_second" />
+
+            <TextView
+                android:id="@+id/tvMonth"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:textColor="@color/pomo_text"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                tools:text="2026年10月" />
+
+            <ImageButton
+                android:id="@+id/btnNextMonth"
+                android:layout_width="38dp"
+                android:layout_height="38dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="下一月"
+                android:src="@drawable/ic_chevron_right"
+                app:tint="@color/pomo_text_second" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:orientation="horizontal">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:background="@drawable/bg_goal_card"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView
+                    android:id="@+id/tvMonthTomatoes"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="0"
+                    android:textColor="@color/white"
+                    android:textSize="32sp"
+                    android:textStyle="bold"
+                    tools:text="42" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:alpha="0.9"
+                    android:text="本月番茄"
+                    android:textColor="@color/white"
+                    android:textSize="12sp" />
+            </LinearLayout>
+
+            <Space
+                android:layout_width="12dp"
+                android:layout_height="1dp" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:background="@drawable/bg_card_white"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView
+                    android:id="@+id/tvTotalTomatoes"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="0"
+                    android:textColor="@color/pomo_text"
+                    android:textSize="32sp"
+                    android:textStyle="bold"
+                    tools:text="318" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:text="历史累计番茄"
+                    android:textColor="@color/pomo_text_second"
+                    android:textSize="12sp" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:background="@drawable/bg_card_white"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:padding="16dp">
+
+            <TextView
+                android:id="@+id/tvMonthMinutes"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="本月专注 0 分钟"
+                android:textColor="@color/pomo_text_second"
+                android:textSize="12sp"
+                tools:text="本月专注 1050 分钟" />
+
+            <TextView
+                android:id="@+id/tvStreak"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_tag_primary"
+                android:paddingStart="8dp"
+                android:paddingTop="4dp"
+                android:paddingEnd="8dp"
+                android:paddingBottom="4dp"
+                android:text="连续 0 天"
+                android:textColor="@color/pomo_primary"
+                android:textSize="11sp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            android:background="@drawable/bg_card_white"
+            android:orientation="vertical"
+            android:paddingStart="12dp"
+            android:paddingTop="14dp"
+            android:paddingEnd="12dp"
+            android:paddingBottom="8dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:text="一"
+                    android:textColor="@color/pomo_text_second"
+                    android:textSize="11sp" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:text="二"
+                    android:textColor="@color/pomo_text_second"
+                    android:textSize="11sp" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:text="三"
+                    android:textColor="@color/pomo_text_second"
+                    android:textSize="11sp" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:text="四"
+                    android:textColor="@color/pomo_text_second"
+                    android:textSize="11sp" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:text="五"
+                    android:textColor="@color/pomo_text_second"
+                    android:textSize="11sp" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:text="六"
+                    android:textColor="@color/pomo_text_second"
+                    android:textSize="11sp" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:text="日"
+                    android:textColor="@color/pomo_text_second"
+                    android:textSize="11sp" />
+            </LinearLayout>
+
+            <com.ivan.pomodoro.ui.widget.MonthCalendarView
+                android:id="@+id/calendar"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="22dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/tvSelectedDay"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:textColor="@color/pomo_text"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                tools:text="10月27日 星期二" />
+
+            <TextView
+                android:id="@+id/tvSelectedSummary"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/pomo_text_second"
+                android:textSize="12sp"
+                tools:text="3 个番茄 · 75 分钟" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/tvEmptyDay"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:paddingTop="22dp"
+            android:paddingBottom="22dp"
+            android:text="这一天还没有收获番茄"
+            android:textColor="@color/pomo_text_second"
+            android:textSize="12sp" />
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rvDaySessions"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:nestedScrollingEnabled="false" />
+    </LinearLayout>
+</androidx.core.widget.NestedScrollView>

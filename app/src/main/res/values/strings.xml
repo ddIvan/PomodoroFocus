@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">番茄专注</string>
+    <string name="tab_focus">专注</string>
+    <string name="tab_plans">计划</string>
+    <string name="tab_stats">统计</string>
+</resources>

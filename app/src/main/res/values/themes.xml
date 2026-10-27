@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <style name="Theme.Pomodoro" parent="Theme.Material3.Light.NoActionBar">
+        <item name="colorPrimary">@color/pomo_primary</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <item name="colorPrimaryContainer">@color/pomo_primary_light</item>
+        <item name="colorOnPrimaryContainer">@color/pomo_primary_dark</item>
+        <item name="colorSecondary">@color/pomo_green</item>
+        <item name="colorSurface">@color/pomo_surface</item>
+        <item name="android:colorBackground">@color/pomo_bg</item>
+        <item name="android:statusBarColor">@color/pomo_bg</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:navigationBarColor">@color/pomo_surface</item>
+    </style>
+</resources>

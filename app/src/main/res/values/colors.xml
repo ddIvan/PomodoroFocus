@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="pomo_primary">#E4572E</color>
+    <color name="pomo_primary_dark">#C0451F</color>
+    <color name="pomo_primary_light">#FFE7DC</color>
+    <color name="pomo_bg">#FFF9F5</color>
+    <color name="pomo_surface">#FFFFFF</color>
+    <color name="pomo_text">#2E2723</color>
+    <color name="pomo_text_second">#8C7F77</color>
+    <color name="pomo_green">#2E9E6B</color>
+    <color name="pomo_green_light">#E2F5EC</color>
+    <color name="pomo_amber">#E9A23B</color>
+    <color name="pomo_amber_light">#FDF1DC</color>
+    <color name="pomo_track">#F0E5DE</color>
+    <color name="pomo_divider">#F1E7E0</color>
+    <color name="white">#FFFFFF</color>
+</resources>

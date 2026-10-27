@@ -1,0 +1,471 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/pomo_bg"
+    android:orientation="vertical">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="8dp"
+        android:paddingEnd="12dp">
+
+        <ImageButton
+            android:id="@+id/btnBack"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="关闭"
+            android:src="@drawable/ic_close"
+            app:tint="@color/pomo_text" />
+
+        <TextView
+            android:id="@+id/tvTitle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="新建计划"
+            android:textColor="@color/pomo_text"
+            android:textSize="17sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/btnDelete"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:padding="8dp"
+            android:text="删除"
+            android:textColor="@color/pomo_primary"
+            android:textSize="13sp"
+            android:visibility="gone" />
+    </LinearLayout>
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:fillViewport="true"
+        android:scrollbars="none">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingStart="20dp"
+            android:paddingTop="8dp"
+            android:paddingEnd="20dp"
+            android:paddingBottom="24dp">
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/tilName"
+                style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="计划名称"
+                app:boxCornerRadiusBottomEnd="14dp"
+                app:boxCornerRadiusBottomStart="14dp"
+                app:boxCornerRadiusTopEnd="14dp"
+                app:boxCornerRadiusTopStart="14dp">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/etName"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:imeOptions="actionNext"
+                    android:inputType="text"
+                    android:maxLines="1"
+                    android:textSize="15sp" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="22dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="单次专注时长"
+                        android:textColor="@color/pomo_text"
+                        android:textSize="15sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="完整走完才计为 1 个番茄"
+                        android:textColor="@color/pomo_text_second"
+                        android:textSize="11sp" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/tvDurationValue"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="25 分钟"
+                    android:textColor="@color/pomo_primary"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <com.google.android.material.slider.Slider
+                android:id="@+id/sliderDuration"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:stepSize="5"
+                android:value="25"
+                android:valueFrom="5"
+                android:valueTo="120" />
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/tilGoal"
+                style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="14dp"
+                android:hint="专注目标（选填）"
+                app:boxCornerRadiusBottomEnd="14dp"
+                app:boxCornerRadiusBottomStart="14dp"
+                app:boxCornerRadiusTopEnd="14dp"
+                app:boxCornerRadiusTopStart="14dp"
+                app:counterEnabled="true"
+                app:counterMaxLength="60">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/etGoal"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="top|start"
+                    android:inputType="textMultiLine"
+                    android:maxLength="60"
+                    android:minLines="2"
+                    android:textSize="15sp" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="22dp"
+                android:text="重复频率"
+                android:textColor="@color/pomo_text"
+                android:textSize="15sp"
+                android:textStyle="bold" />
+
+            <com.google.android.material.button.MaterialButtonToggleGroup
+                android:id="@+id/toggleFrequency"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                app:checkedButton="@id/btnFreqDaily"
+                app:selectionRequired="true"
+                app:singleSelection="true">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnFreqDaily"
+                    style="?attr/materialButtonOutlinedStyle"
+                    android:layout_width="0dp"
+                    android:layout_height="48dp"
+                    android:layout_weight="1"
+                    android:text="每天"
+                    app:cornerRadius="12dp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnFreqWeekdays"
+                    style="?attr/materialButtonOutlinedStyle"
+                    android:layout_width="0dp"
+                    android:layout_height="48dp"
+                    android:layout_weight="1"
+                    android:text="工作日"
+                    app:cornerRadius="12dp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnFreqCustom"
+                    style="?attr/materialButtonOutlinedStyle"
+                    android:layout_width="0dp"
+                    android:layout_height="48dp"
+                    android:layout_weight="1"
+                    android:text="自定义"
+                    app:cornerRadius="12dp" />
+            </com.google.android.material.button.MaterialButtonToggleGroup>
+
+            <com.google.android.material.chip.ChipGroup
+                android:id="@+id/chipWeekdays"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                app:chipSpacingHorizontal="6dp"
+                app:singleLine="true"
+                android:visibility="gone">
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chipMon"
+                    style="@style/Widget.Material3.Chip.Filter"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="一" />
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chipTue"
+                    style="@style/Widget.Material3.Chip.Filter"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="二" />
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chipWed"
+                    style="@style/Widget.Material3.Chip.Filter"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="三" />
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chipThu"
+                    style="@style/Widget.Material3.Chip.Filter"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="四" />
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chipFri"
+                    style="@style/Widget.Material3.Chip.Filter"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="五" />
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chipSat"
+                    style="@style/Widget.Material3.Chip.Filter"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="六" />
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chipSun"
+                    style="@style/Widget.Material3.Chip.Filter"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="日" />
+            </com.google.android.material.chip.ChipGroup>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="每日目标番茄数"
+                    android:textColor="@color/pomo_text"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tvDailyTargetValue"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="4 个"
+                    android:textColor="@color/pomo_primary"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <com.google.android.material.slider.Slider
+                android:id="@+id/sliderDailyTarget"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:stepSize="1"
+                android:value="4"
+                android:valueFrom="1"
+                android:valueTo="12" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:text="任务类型"
+                android:textColor="@color/pomo_text"
+                android:textSize="15sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="决定摄像头按什么标准判断分心"
+                android:textColor="@color/pomo_text_second"
+                android:textSize="11sp" />
+
+            <com.google.android.material.button.MaterialButtonToggleGroup
+                android:id="@+id/toggleTaskMode"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                app:checkedButton="@id/btnTaskScreen"
+                app:selectionRequired="true"
+                app:singleSelection="true">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnTaskScreen"
+                    style="?attr/materialButtonOutlinedStyle"
+                    android:layout_width="0dp"
+                    android:layout_height="48dp"
+                    android:layout_weight="1"
+                    android:text="盯屏"
+                    app:cornerRadius="12dp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnTaskPaper"
+                    style="?attr/materialButtonOutlinedStyle"
+                    android:layout_width="0dp"
+                    android:layout_height="48dp"
+                    android:layout_weight="1"
+                    android:text="纸面"
+                    app:cornerRadius="12dp" />
+            </com.google.android.material.button.MaterialButtonToggleGroup>
+
+            <TextView
+                android:id="@+id/tvTaskHint"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="看网课、看视频：面部朝向屏幕才算专注，低头、闭眼只提醒"
+                android:textColor="@color/pomo_text_second"
+                android:textSize="11sp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:text="分心判定严格度"
+                android:textColor="@color/pomo_text"
+                android:textSize="15sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="仅在使用摄像头监控时生效"
+                android:textColor="@color/pomo_text_second"
+                android:textSize="11sp" />
+
+            <com.google.android.material.button.MaterialButtonToggleGroup
+                android:id="@+id/toggleStrictness"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                app:checkedButton="@id/btnStrictStandard"
+                app:selectionRequired="true"
+                app:singleSelection="true">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnStrictLenient"
+                    style="?attr/materialButtonOutlinedStyle"
+                    android:layout_width="0dp"
+                    android:layout_height="48dp"
+                    android:layout_weight="1"
+                    android:text="宽松"
+                    app:cornerRadius="12dp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnStrictStandard"
+                    style="?attr/materialButtonOutlinedStyle"
+                    android:layout_width="0dp"
+                    android:layout_height="48dp"
+                    android:layout_weight="1"
+                    android:text="标准"
+                    app:cornerRadius="12dp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnStrictStrict"
+                    style="?attr/materialButtonOutlinedStyle"
+                    android:layout_width="0dp"
+                    android:layout_height="48dp"
+                    android:layout_weight="1"
+                    android:text="严格"
+                    app:cornerRadius="12dp" />
+            </com.google.android.material.button.MaterialButtonToggleGroup>
+
+            <TextView
+                android:id="@+id/tvStrictHint"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="低头看书只提醒；连续离开镜头 25 秒或累计 30% 时长才判定未通过"
+                android:textColor="@color/pomo_text_second"
+                android:textSize="11sp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="22dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="默认开启摄像头监控"
+                        android:textColor="@color/pomo_text"
+                        android:textSize="15sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="开始专注时仍可临时切换"
+                        android:textColor="@color/pomo_text_second"
+                        android:textSize="11sp" />
+                </LinearLayout>
+
+                <com.google.android.material.materialswitch.MaterialSwitch
+                    android:id="@+id/switchMonitorDefault"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" />
+            </LinearLayout>
+        </LinearLayout>
+    </ScrollView>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/pomo_surface"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnSave"
+            android:layout_width="match_parent"
+            android:layout_height="54dp"
+            android:text="保存计划"
+            android:textSize="16sp"
+            app:cornerRadius="18dp" />
+    </LinearLayout>
+</LinearLayout>

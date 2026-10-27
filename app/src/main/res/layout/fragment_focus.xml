@@ -1,0 +1,419 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/pomo_bg"
+    android:fillViewport="true"
+    android:scrollbars="none">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingStart="20dp"
+        android:paddingTop="24dp"
+        android:paddingEnd="20dp"
+        android:paddingBottom="28dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/tvDate"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/pomo_text_second"
+                    android:textSize="13sp"
+                    tools:text="10月27日 星期二" />
+
+                <TextView
+                    android:id="@+id/tvGreeting"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="今天专注一下"
+                    android:textColor="@color/pomo_text"
+                    android:textSize="24sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <FrameLayout
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:background="@drawable/bg_circle_primary_light">
+
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:layout_gravity="center"
+                    android:contentDescription="@string/app_name"
+                    android:src="@drawable/ic_tomato"
+                    app:tint="@color/pomo_primary" />
+            </FrameLayout>
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="18dp"
+            android:background="@drawable/bg_goal_card"
+            android:orientation="vertical"
+            android:padding="20dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:alpha="0.88"
+                android:text="今日番茄"
+                android:textColor="@color/white"
+                android:textSize="13sp" />
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:gravity="bottom"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/tvTodayTomatoes"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="0"
+                    android:textColor="@color/white"
+                    android:textSize="46sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tvTodayTarget"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:layout_marginBottom="9dp"
+                    android:alpha="0.85"
+                    android:text="/ 4 个"
+                    android:textColor="@color/white"
+                    android:textSize="14sp" />
+            </LinearLayout>
+
+            <com.google.android.material.progressindicator.LinearProgressIndicator
+                android:id="@+id/progressTarget"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                app:indicatorColor="@color/white"
+                app:trackColor="#40FFFFFF"
+                app:trackCornerRadius="4dp"
+                app:trackThickness="6dp" />
+
+            <TextView
+                android:id="@+id/tvTodayFocus"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:alpha="0.85"
+                android:text="今日已专注 0 分钟"
+                android:textColor="@color/white"
+                android:textSize="12sp" />
+        </LinearLayout>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:text="当前计划"
+            android:textColor="@color/pomo_text"
+            android:textSize="15sp"
+            android:textStyle="bold" />
+
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/cardPlan"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:clickable="true"
+            android:focusable="true"
+            app:cardBackgroundColor="@color/pomo_surface"
+            app:cardCornerRadius="20dp"
+            app:cardElevation="0dp"
+            app:strokeColor="@color/pomo_divider"
+            app:strokeWidth="1dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:padding="16dp">
+
+                <View
+                    android:layout_width="4dp"
+                    android:layout_height="38dp"
+                    android:background="@drawable/bg_circle_primary_light" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="12dp"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/tvPlanName"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="还没有计划"
+                        android:textColor="@color/pomo_text"
+                        android:maxLines="1"
+                        android:ellipsize="end"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tvPlanMeta"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:text="点击创建你的第一个专注计划"
+                        android:textColor="@color/pomo_text_second"
+                        android:textSize="12sp" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/tvPlanAction"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_tag_primary"
+                    android:paddingStart="10dp"
+                    android:paddingTop="5dp"
+                    android:paddingEnd="10dp"
+                    android:paddingBottom="5dp"
+                    android:text="更换"
+                    android:textColor="@color/pomo_primary"
+                    android:textSize="12sp" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            app:cardBackgroundColor="@color/pomo_surface"
+            app:cardCornerRadius="20dp"
+            app:cardElevation="0dp"
+            app:strokeColor="@color/pomo_divider"
+            app:strokeWidth="1dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <ImageView
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:contentDescription="摄像头监控"
+                        android:src="@drawable/ic_camera"
+                        app:tint="@color/pomo_primary" />
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="10dp"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="摄像头专注监控"
+                            android:textColor="@color/pomo_text"
+                            android:textSize="15sp" />
+
+                        <TextView
+                            android:id="@+id/tvMonitorHint"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="持续离开镜头才会判定本次未通过"
+                            android:textColor="@color/pomo_text_second"
+                            android:textSize="11sp" />
+                    </LinearLayout>
+
+                    <com.google.android.material.materialswitch.MaterialSwitch
+                        android:id="@+id/switchMonitor"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" />
+                </LinearLayout>
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="14dp"
+                    android:text="监控视角"
+                    android:textColor="@color/pomo_text"
+                    android:textSize="13sp" />
+
+                <com.google.android.material.button.MaterialButtonToggleGroup
+                    android:id="@+id/toggleLens"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    app:checkedButton="@id/btnLensFront"
+                    app:selectionRequired="true"
+                    app:singleSelection="true">
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnLensFront"
+                        style="?attr/materialButtonOutlinedStyle"
+                        android:layout_width="0dp"
+                        android:layout_height="44dp"
+                        android:layout_weight="1"
+                        android:text="前置 · 正对屏幕"
+                        android:textSize="13sp"
+                        app:cornerRadius="12dp" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnLensBack"
+                        style="?attr/materialButtonOutlinedStyle"
+                        android:layout_width="0dp"
+                        android:layout_height="44dp"
+                        android:layout_weight="1"
+                        android:text="后置 · 上方俯拍"
+                        android:textSize="13sp"
+                        app:cornerRadius="12dp" />
+                </com.google.android.material.button.MaterialButtonToggleGroup>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="14dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="分心语音提醒"
+                            android:textColor="@color/pomo_text"
+                            android:textSize="14sp" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="检测到分心时播放「请不要分心」"
+                            android:textColor="@color/pomo_text_second"
+                            android:textSize="11sp" />
+                    </LinearLayout>
+
+                    <com.google.android.material.materialswitch.MaterialSwitch
+                        android:id="@+id/switchVoice"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/tvMonitorRuleHint"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:text="前置正对：低头看书、闭眼只做提醒；后置俯拍：手机架高朝下，离开座位才算分心。画面仅本机分析，不保存不上传。"
+                    android:textColor="@color/pomo_text_second"
+                    android:textSize="11sp" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnStart"
+            android:layout_width="match_parent"
+            android:layout_height="58dp"
+            android:layout_marginTop="18dp"
+            android:text="开始专注"
+            android:textSize="17sp"
+            app:cornerRadius="20dp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="26dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="今日记录"
+                android:textColor="@color/pomo_text"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tvTodayCount"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="0 条"
+                android:textColor="@color/pomo_text_second"
+                android:textSize="12sp" />
+
+            <TextView
+                android:id="@+id/tvClearToday"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:paddingStart="8dp"
+                android:paddingTop="4dp"
+                android:paddingEnd="8dp"
+                android:paddingBottom="4dp"
+                android:text="清空"
+                android:textColor="@color/pomo_primary"
+                android:textSize="12sp"
+                android:visibility="gone"
+                tools:visibility="visible" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/tvEmptyToday"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:paddingTop="26dp"
+            android:paddingBottom="26dp"
+            android:text="今天还没有专注记录\n完成一个完整时段即可收获一枚番茄"
+            android:textColor="@color/pomo_text_second"
+            android:textSize="12sp" />
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rvToday"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:nestedScrollingEnabled="false" />
+    </LinearLayout>
+</androidx.core.widget.NestedScrollView>

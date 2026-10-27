@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/pomo_bg">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:paddingStart="20dp"
+        android:paddingTop="24dp"
+        android:paddingEnd="20dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="专注计划"
+            android:textColor="@color/pomo_text"
+            android:textSize="24sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="自定义时长、目标与频率，让专注贴合你的节奏"
+            android:textColor="@color/pomo_text_second"
+            android:textSize="12sp" />
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rvPlans"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_marginTop="18dp"
+            android:layout_weight="1"
+            android:clipToPadding="false"
+            android:paddingBottom="88dp" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/emptyState"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:padding="32dp"
+        android:visibility="gone">
+
+        <FrameLayout
+            android:layout_width="72dp"
+            android:layout_height="72dp"
+            android:background="@drawable/bg_circle_primary_light">
+
+            <ImageView
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:layout_gravity="center"
+                android:contentDescription="番茄"
+                android:src="@drawable/ic_tomato"
+                app:tint="@color/pomo_primary" />
+        </FrameLayout>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="还没有专注计划"
+            android:textColor="@color/pomo_text"
+            android:textSize="17sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:gravity="center"
+            android:text="创建一个计划，设定专注时长、目标与频率"
+            android:textColor="@color/pomo_text_second"
+            android:textSize="12sp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnEmptyCreate"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="18dp"
+            android:text="创建第一个计划"
+            app:cornerRadius="16dp" />
+    </LinearLayout>
+
+    <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
+        android:id="@+id/fabAdd"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_marginEnd="20dp"
+        android:layout_marginBottom="20dp"
+        android:text="新建计划"
+        app:icon="@drawable/ic_add" />
+</FrameLayout>
