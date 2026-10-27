@@ -4,8 +4,7 @@ plugins {
     id 'kotlin-kapt'
 }
 
-// 正式签名信息放在项目根的 keystore.properties（不入库），
-// 密钥库默认位于 keystore/ivan.jks，别名 ivan。
+
 def keystorePropsFile = rootProject.file('keystore.properties')
 def keystoreProps = new Properties()
 def hasSigningProps = false
