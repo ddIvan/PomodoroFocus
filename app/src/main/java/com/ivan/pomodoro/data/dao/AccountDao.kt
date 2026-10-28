@@ -24,6 +24,10 @@ interface AccountDao {
     @Insert
     suspend fun insert(account: Account): Long
 
+    /** 只更新口令哈希，账号、角色与创建时间保持不变 */
+    @Query("UPDATE accounts SET passwordHash = :passwordHash WHERE id = :id")
+    suspend fun updatePassword(id: Long, passwordHash: String)
+
     @Query("DELETE FROM accounts WHERE id = :id")
     suspend fun deleteById(id: Long)
 

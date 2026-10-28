@@ -20,6 +20,7 @@ import com.ivan.pomodoro.session.AccountManager
 import com.ivan.pomodoro.session.FocusSessionManager
 import com.ivan.pomodoro.ui.admin.AdminActivity
 import com.ivan.pomodoro.ui.focus.FocusFragment
+import com.ivan.pomodoro.ui.login.ChangePasswordDialog
 import com.ivan.pomodoro.ui.login.LoginActivity
 import com.ivan.pomodoro.ui.login.RegisterDialog
 import com.ivan.pomodoro.ui.plans.PlansFragment
@@ -141,6 +142,11 @@ class MainActivity : AppCompatActivity() {
                 R.id.action_register -> {
                     // 首页也能直接注册：注册成功会自动登录该账户，重启页面刷新数据
                     RegisterDialog.show(this) { restartSelf() }
+                    true
+                }
+
+                R.id.action_change_password -> {
+                    ChangePasswordDialog.show(this)
                     true
                 }
 

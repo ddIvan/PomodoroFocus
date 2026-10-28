@@ -4,6 +4,9 @@
         android:id="@+id/action_register"
         android:title="注册新账号" />
     <item
+        android:id="@+id/action_change_password"
+        android:title="修改密码" />
+    <item
         android:id="@+id/action_switch_account"
         android:title="切换账号" />
     <item

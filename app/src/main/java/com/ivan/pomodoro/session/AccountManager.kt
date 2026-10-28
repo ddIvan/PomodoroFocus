@@ -75,6 +75,32 @@ object AccountManager {
         return AuthResult.Success(apply(account.copy(id = id)))
     }
 
+    /**
+     * 修改当前登录账户的口令：先校验原密码，再写入新哈希。
+     * 成功后保持登录状态，不需要重新登录。
+     */
+    suspend fun changePassword(
+        oldPassword: String,
+        newPassword: String,
+        confirm: String
+    ): AuthResult {
+        val id = currentId
+        if (id <= 0L) return AuthResult.Failure("登录状态已失效，请重新登录")
+        val account = dao.getById(id) ?: return AuthResult.Failure("登录状态已失效，请重新登录")
+
+        if (oldPassword.isEmpty()) return AuthResult.Failure("请输入原密码")
+        if (account.passwordHash != sha256(oldPassword)) return AuthResult.Failure("原密码不正确")
+        if (newPassword.length < 6) return AuthResult.Failure("新密码至少 6 位")
+        if (newPassword == oldPassword) return AuthResult.Failure("新密码不能与原密码相同")
+        if (newPassword != confirm) return AuthResult.Failure("两次输入的新密码不一致")
+
+        val hash = sha256(newPassword)
+        dao.updatePassword(account.id, hash)
+        val updated = account.copy(passwordHash = hash)
+        cached = updated
+        return AuthResult.Success(updated)
+    }
+
     /** 明确的下线：清掉偏好里的登录态与当前选中计划 */
     fun logout() {
         cached = null
