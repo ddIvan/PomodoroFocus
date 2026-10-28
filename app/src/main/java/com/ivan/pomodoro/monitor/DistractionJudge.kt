@@ -12,6 +12,8 @@ import kotlin.math.abs
  *
  * 盯屏任务的判据是"是否看着屏幕"；纸面任务则相反——低头书写才是专注证据，
  * 抬头张望才是分心，俯拍时只看到头发/头顶属于常态，不能当作离席。
+ * 因此纸面俯拍完全不以"有没有脸"判定，而是看画面里还有没有人像前景
+ * （手、头发、头顶）或者明显动作，两者都没有才认为人离开座位。
  *
  * 判定分级：
  * - 作废级（severe）：确认离开座位、大幅扭头看别处等强信号，累计后可能导致本次失败。
@@ -36,6 +38,7 @@ class DistractionJudge(
     )
 
     private var noFaceSince = 0L
+    private var absentSince = 0L
     private var instantDistracted = false
     private var instantSevere = false
     private var instantEscalateMs = 0L
@@ -47,6 +50,7 @@ class DistractionJudge(
 
     fun reset() {
         noFaceSince = 0L
+        absentSince = 0L
         instantDistracted = false
         instantSevere = false
         instantEscalateMs = 0L
@@ -57,16 +61,22 @@ class DistractionJudge(
         lastNote = ""
     }
 
+    /**
+     * @param presence 画面中"人"（手/头发/头顶）的占比，0~1；小于 0 表示本次没有该数据。
+     * @param motion 相邻两帧的画面变化量，0~1；小于 0 表示本次没有该数据。
+     */
     fun evaluate(
         faces: List<Face>,
         now: Long,
         imageWidth: Int = 0,
-        imageHeight: Int = 0
+        imageHeight: Int = 0,
+        presence: Float = -1f,
+        motion: Float = -1f
     ): Verdict {
         lastNote = ""
         if (faces.isEmpty()) {
             if (noFaceSince == 0L) noFaceSince = now
-            judgeNoFace(now - noFaceSince, now)
+            judgeNoFace(now - noFaceSince, now, presence, motion)
         } else {
             noFaceSince = 0L
             val face = faces.maxByOrNull {
@@ -111,16 +121,14 @@ class DistractionJudge(
 
     // ---------------------------------------------------------------- 无人脸
 
-    private fun judgeNoFace(gap: Long, now: Long) {
+    private fun judgeNoFace(gap: Long, now: Long, presence: Float = -1f, motion: Float = -1f) {
         when (mode) {
             Mode.OVERHEAD -> when {
-                // 纸面任务低头写字时画面里只有头发，人脸消失是常态，绝不判失败
-                task == Task.PAPER && gap >= PAPER_OVERHEAD_NO_FACE_HINT_MS ->
-                    markInstant(
-                        false, false, "", 0L, now,
-                        note = "长时间没看到你，请确认还在座位上"
-                    )
+                // 纸面俯拍：看不到脸是常态（低头只有头发），只看画面里还有没有手/头发
+                task == Task.PAPER && presence >= 0f ->
+                    judgePaperOverheadPresence(presence, motion, now)
 
+                // 拿不到分割结果时退回旧策略：完全静默
                 task == Task.PAPER -> markInstant(false, false, "", 0L, now)
 
                 gap >= OVERHEAD_SEVERE_NO_FACE_MS ->
@@ -147,6 +155,37 @@ class DistractionJudge(
     }
 
     // ---------------------------------------------------------------- 前置正对
+
+    /**
+     * 纸面俯拍：满足任一条件即认为人还在写作业——不提示。
+     * - 画面里能看到手/头发/头顶（人像分割前景占比够）；
+     * - 画面有明显变化（笔在动、身体在动），分割漏检时兜底。
+     *
+     * 两个判据都不满足并持续一段时间，才判"看不到你的手和头发"。
+     */
+    private fun judgePaperOverheadPresence(presence: Float, motion: Float, now: Long) {
+        val hasPerson = presence >= PAPER_PRESENCE_MIN
+        val hasMotion = motion >= PAPER_MOTION_MIN
+        if (hasPerson || hasMotion) {
+            absentSince = 0L
+            markInstant(false, false, "", 0L, now)
+            return
+        }
+        if (absentSince == 0L) absentSince = now
+        val absent = now - absentSince
+        when {
+            absent >= PAPER_ABSENT_SEVERE_MS ->
+                markInstant(true, true, "长时间看不到你的手和头发，请回到座位", 0L, now)
+
+            absent >= PAPER_ABSENT_HINT_MS ->
+                markInstant(
+                    true, false, "看不到你的手和头发，请回到座位",
+                    PAPER_ABSENT_SEVERE_MS, now
+                )
+
+            else -> markInstant(false, false, "", 0L, now)
+        }
+    }
 
     /** 盯屏：看着屏幕才算专注 */
     private fun judgeScreenFront(face: Face, now: Long) {
@@ -254,9 +293,18 @@ class DistractionJudge(
         private const val OVERHEAD_NO_FACE_DELAY_MS = 6000L
         private const val OVERHEAD_SEVERE_NO_FACE_MS = 25_000L
 
-        /** 纸面：无脸只做提示，不计分心 */
+        /** 纸面前置：无脸只做提示，不计分心 */
         private const val PAPER_FRONT_NO_FACE_HINT_MS = 60_000L
-        private const val PAPER_OVERHEAD_NO_FACE_HINT_MS = 90_000L
+
+        /** 纸面俯拍：前景（手/头发）占比达到该值即视为人在画面里 */
+        private const val PAPER_PRESENCE_MIN = 0.02f
+
+        /** 纸面俯拍：画面变化量达到该值即视为手在动（空桌面静止时约为 0） */
+        private const val PAPER_MOTION_MIN = 0.004f
+
+        /** 纸面俯拍：连续多久看不到人开始提示、多久升级为作废级 */
+        private const val PAPER_ABSENT_HINT_MS = 4_000L
+        private const val PAPER_ABSENT_SEVERE_MS = 45_000L
 
         private const val HOLD_MS = 1500L
         private const val HEAD_AWAY_YAW = 42f

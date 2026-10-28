@@ -92,4 +92,6 @@ dependencies {
 
     // 人脸行为识别（离线模型）
     implementation 'com.google.mlkit:face-detection:16.1.6'
+    // 人像分割：纸面俯拍时判断画面里是否还有手/头发（离线模型）
+    implementation 'com.google.mlkit:segmentation-selfie:16.0.0-beta6'
 }
