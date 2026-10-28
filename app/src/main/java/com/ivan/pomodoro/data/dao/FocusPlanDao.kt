@@ -11,11 +11,11 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface FocusPlanDao {
 
-    @Query("SELECT * FROM focus_plans WHERE archived = 0 ORDER BY createdAt ASC")
-    fun observePlans(): Flow<List<FocusPlan>>
+    @Query("SELECT * FROM focus_plans WHERE archived = 0 AND accountId = :accountId ORDER BY createdAt ASC")
+    fun observePlans(accountId: Long): Flow<List<FocusPlan>>
 
-    @Query("SELECT * FROM focus_plans WHERE archived = 0 ORDER BY createdAt ASC")
-    suspend fun getPlans(): List<FocusPlan>
+    @Query("SELECT * FROM focus_plans WHERE archived = 0 AND accountId = :accountId ORDER BY createdAt ASC")
+    suspend fun getPlans(accountId: Long): List<FocusPlan>
 
     @Query("SELECT * FROM focus_plans WHERE id = :id")
     suspend fun getById(id: Long): FocusPlan?
@@ -29,6 +29,10 @@ interface FocusPlanDao {
     @Query("DELETE FROM focus_plans WHERE id = :id")
     suspend fun deleteById(id: Long)
 
-    @Query("SELECT COUNT(*) FROM focus_plans WHERE archived = 0")
-    suspend fun count(): Int
+    @Query("SELECT COUNT(*) FROM focus_plans WHERE archived = 0 AND accountId = :accountId")
+    suspend fun count(accountId: Long): Int
+
+    /** 管理端：删除某账户的全部计划 */
+    @Query("DELETE FROM focus_plans WHERE accountId = :accountId")
+    suspend fun deleteByAccount(accountId: Long): Int
 }

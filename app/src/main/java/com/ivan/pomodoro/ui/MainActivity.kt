@@ -5,6 +5,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.widget.PopupMenu
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
@@ -15,8 +16,12 @@ import com.ivan.pomodoro.R
 import com.ivan.pomodoro.data.FocusRepository
 import com.ivan.pomodoro.data.Prefs
 import com.ivan.pomodoro.databinding.ActivityMainBinding
+import com.ivan.pomodoro.session.AccountManager
 import com.ivan.pomodoro.session.FocusSessionManager
+import com.ivan.pomodoro.ui.admin.AdminActivity
 import com.ivan.pomodoro.ui.focus.FocusFragment
+import com.ivan.pomodoro.ui.login.LoginActivity
+import com.ivan.pomodoro.ui.login.RegisterDialog
 import com.ivan.pomodoro.ui.plans.PlansFragment
 import com.ivan.pomodoro.ui.session.FocusSessionActivity
 import com.ivan.pomodoro.ui.stats.StatsFragment
@@ -36,8 +41,17 @@ class MainActivity : AppCompatActivity() {
     private val notificationPermission =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
 
+    /** onCreate 与 onResume 都可能触发跳登录页，用标记避免叠两层 */
+    private var redirecting = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        AccountManager.init(this)
+        if (!AccountManager.isLoggedIn) {
+            redirectToLogin()
+            return
+        }
+
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
         FocusSessionManager.init(this)
@@ -67,6 +81,8 @@ class MainActivity : AppCompatActivity() {
             binding.bottomNav.selectedItemId = R.id.nav_focus
         }
 
+        binding.tvSwitchAccount.setOnClickListener { showAccountMenu() }
+        bindAccountBar()
         requestNotificationPermission()
     }
 
@@ -92,6 +108,11 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        if (!AccountManager.isLoggedIn) {
+            redirectToLogin()
+            return
+        }
+        bindAccountBar()
         autoClearHistory()
         if (FocusSessionManager.isActive) {
             // 必须复用栈中已有实例，否则每次回到首页都会叠一层专注页，各自弹出结束提示
@@ -102,17 +123,70 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun bindAccountBar() {
+        binding.tvAccountName.text = AccountManager.displayName.ifEmpty { "未登录" }
+        binding.tvAccountMeta.text = when {
+            AccountManager.isAdmin -> "管理员 · 可管理所有账户数据"
+            AccountManager.isLoggedIn -> "普通账户 · 数据仅保存在本机"
+            else -> "请先登录"
+        }
+    }
+
+    private fun showAccountMenu() {
+        val popup = PopupMenu(this, binding.tvSwitchAccount)
+        popup.menuInflater.inflate(R.menu.account_menu, popup.menu)
+        popup.menu.findItem(R.id.action_admin).isVisible = AccountManager.isAdmin
+        popup.setOnMenuItemClickListener { item ->
+            when (item.itemId) {
+                R.id.action_register -> {
+                    // 首页也能直接注册：注册成功会自动登录该账户，重启页面刷新数据
+                    RegisterDialog.show(this) { restartSelf() }
+                    true
+                }
+
+                R.id.action_switch_account, R.id.action_logout -> {
+                    AccountManager.logout()
+                    redirectToLogin()
+                    true
+                }
+
+                R.id.action_admin -> {
+                    startActivity(Intent(this, AdminActivity::class.java))
+                    true
+                }
+
+                else -> false
+            }
+        }
+        popup.show()
+    }
+
+    private fun redirectToLogin() {
+        if (redirecting || isFinishing) return
+        redirecting = true
+        startActivity(Intent(this, LoginActivity::class.java))
+        finish()
+    }
+
+    /** 注册成功后账户已切换，重建首页让所有列表按新账户刷新 */
+    private fun restartSelf() {
+        startActivity(Intent(this, MainActivity::class.java))
+        finish()
+    }
+
     /**
-     * 跨天进入 App 时自动清空昨日及更早的记录明细。
+     * 跨天进入 App 时自动清空昨日及更早的记录明细（按账户各记一份进度）。
      * 只清空明细展示，番茄数、专注时长、打卡等统计仍按全量数据计算。
      */
     private fun autoClearHistory() {
+        val accountId = AccountManager.currentId
+        if (accountId <= 0L) return
         val today = LocalDate.now()
         val key = TimeUtils.dateKey(today)
-        if (prefs.lastAutoClearDateKey == key) return
+        if (prefs.autoClearMark(accountId) == key) return
         lifecycleScope.launch {
             repository.clearBefore(today)
-            prefs.lastAutoClearDateKey = key
+            prefs.setAutoClearMark(accountId, key)
         }
     }
 

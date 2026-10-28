@@ -1,6 +1,6 @@
 # 番茄专注（Pomodoro Focus）
 
-一个本地运行的 Android 番茄钟：多计划管理 + 摄像头人脸监控 + 分心提醒 + 番茄统计。
+一个本地运行的 Android 番茄钟：多账户 + 多计划管理 + 摄像头人脸监控 + 分心提醒 + 番茄统计。
 所有数据存放在本机 Room 数据库，人脸识别用 ML Kit 离线模型在设备内完成，**不联网、不保存、不上传任何画面**。
 
 - 包名：`com.ivan.pomodoro`
@@ -13,9 +13,11 @@
 
 | 模块 | 能力 |
 | --- | --- |
+| 账户 | 本地账号登录 / 注册（无服务端），首页显示当前账号并可切换；数据按账户隔离 |
+| 数据管理 | `admin` 账户可跨账户查看汇总与明细、清空记录、删除账户 |
 | 专注首页 | 今日番茄数/每日目标进度、今日已专注分钟、当前计划、今日记录列表（可清空）、监控与语音开关、视角切换 |
 | 专注计划 | 新建/编辑/删除；名称、时长 5~120 分钟、目标、执行频率（每天/工作日/自定义星期）、每日目标番茄数 1~12、任务类型（盯屏/纸面）、默认监控开关、监控严格度 |
-| 专注会话 | 倒计时环、暂停/继续、手动结束、摄像头实时预览、分心次数与累计秒数、作废宽限期提示、结束结果弹窗 |
+| 专注会话 | 倒计时环、暂停/继续、手动结束、摄像头实时预览、分心次数与累计秒数、作废宽限期提示、结束结果弹窗、完成时语音播报「您已获得一个番茄」 |
 | 专注监控 | 前置正对 / 后置俯拍两种视角；盯屏（看网课）/ 纸面（写作业）两套判定策略；作废级与提醒级两级判定；语音、震动、页内提示 |
 | 统计 | 本月番茄、历史累计番茄、本月专注分钟、连续打卡天数、月历（每格显示当日番茄数）、按日明细（标注任务类型） |
 | 后台运行 | 前台服务保活，通知栏显示倒计时并支持暂停/继续/结束；锁屏或切后台自动暂停计时 |
@@ -24,7 +26,39 @@
 
 ---
 
-## 二、监控与分心规则
+## 二、账户与登录
+
+数据按账户隔离：每个账户有自己的计划、记录、番茄数与统计，互不可见。登录只校验本机数据库，没有注册服务器。
+
+### 1. 预置账户
+
+| 账号 | 口令 | 角色 | 预置数据 |
+| --- | --- | --- | --- |
+| `zhengfy` | `123456` | 普通用户 | 2026-10-27 的 2 个番茄（两次 25 分钟完成记录） |
+| `admin` | `123456` | 管理员 | 无，用于管理全部账户数据 |
+
+### 2. 登录与注册
+
+- 启动进入登录页；已登录则自动恢复会话（账户被删除时回到登录页）。
+- 登录页「立即注册」弹窗创建新账户：账号 3~16 位字母/数字/下划线，密码 ≥ 6 位，需二次确认。
+- 首页顶部显示当前账号，右侧「切换账号」菜单包含：注册新账号 / 切换账号 / 数据管理（仅管理员可见）/ 退出登录；首页注册成功会直接切到新账户。
+- 口令以 SHA-256 存库，不落明文；切换或退出账户会重置"当前选中计划"。
+
+### 3. 管理员数据管理
+
+`admin` 登录后从首页菜单进入「数据管理」：
+
+- 顶部汇总：账户数、番茄总数、计划总数。
+- 账户列表：每个账户的番茄数、专注分钟、计划数。
+- **查看明细**：账户汇总 + 最近 12 条记录（时间、时长、状态、任务类型）。
+- **清空记录**：删除该账户全部专注记录，计划保留。
+- **删除账户**：连同该账户的计划与记录一起删除；不能删除当前登录账户，也不能删掉最后一个管理员。
+
+普通账户看不到管理入口；非管理员即使进入该页面也会被立即退出。
+
+---
+
+## 三、监控与分心规则
 
 ### 1. 采集方式
 
@@ -145,7 +179,7 @@
 
 ---
 
-## 三、番茄计算规则
+## 四、番茄计算规则
 
 ### 1. 一次记录的结果状态
 
@@ -181,7 +215,7 @@
 
 ---
 
-## 四、统计规则
+## 五、统计规则
 
 ### 1. 统计口径
 
@@ -229,12 +263,23 @@
 
 ---
 
-## 五、数据模型
+## 六、数据模型
 
-Room 数据库 `pomodoro.db`，版本 3：
+Room 数据库 `pomodoro.db`，版本 4：
 
 - v1→v2：`focus_sessions` 增加 `cleared INTEGER NOT NULL DEFAULT 0`。
 - v2→v3：`focus_plans`、`focus_sessions` 各增加 `taskMode INTEGER NOT NULL DEFAULT 0`（`0` 盯屏 / `1` 纸面），老数据自动落到"盯屏"。
+- v3→v4：新建 `accounts` 表并写入预置账户；`focus_plans`、`focus_sessions` 各增加 `accountId INTEGER NOT NULL DEFAULT 0`，历史数据统一归到 `zhengfy`，同时补 2 条 2026-10-27 的完成记录。全新安装走 `RoomDatabase.Callback.onCreate`，播种逻辑与迁移共用，按开始时间去重保证幂等。
+
+**accounts**
+
+| 字段 | 类型 | 说明 |
+| --- | --- | --- |
+| id | Long | 主键自增 |
+| username | String | 账号，唯一索引 |
+| passwordHash | String | 口令的 SHA-256（不存明文） |
+| role | Int | 0 普通用户 / 1 管理员 |
+| createdAt | Long | 注册时间 |
 
 **focus_plans**
 
@@ -249,6 +294,7 @@ Room 数据库 `pomodoro.db`，版本 3：
 | monitorEnabled | Boolean | 默认是否启用监控 |
 | strictness | Int | 0 宽松 / 1 标准 / 2 严格 |
 | taskMode | Int | 0 盯屏 / 1 纸面（决定分心判定策略与阈值） |
+| accountId | Long | 归属账户，计划按账户隔离 |
 | archived / createdAt | Boolean / Long | 归档标记、创建时间 |
 
 **focus_sessions**
@@ -265,31 +311,36 @@ Room 数据库 `pomodoro.db`，版本 3：
 | distractionCount / distractedSeconds | 分心次数、累计分心秒数 |
 | invalidReason | 未通过 / 放弃原因 |
 | cleared | 明细是否已隐藏（不影响统计） |
+| accountId | 归属账户，记录按账户隔离 |
 
 ---
 
-## 六、项目结构
+## 七、项目结构
 
 ```
 app/src/main/java/com/ivan/pomodoro/
 ├── PomodoroApp.kt                  # Application，单例仓库
 ├── data/
-│   ├── AppDatabase.kt              # Room 数据库 + 版本迁移
-│   ├── FocusRepository.kt          # 计划 / 记录 / 统计查询入口
-│   ├── Prefs.kt                    # 偏好设置
-│   ├── dao/                        # FocusPlanDao、FocusSessionDao
-│   ├── entity/                     # FocusPlan、FocusSession
+│   ├── AppDatabase.kt              # Room 数据库 + 版本迁移 + 账户播种
+│   ├── FocusRepository.kt          # 当前账户的计划 / 记录 / 统计查询入口
+│   ├── AdminRepository.kt          # 管理端跨账户汇总、清理与删除
+│   ├── Prefs.kt                    # 偏好设置 + 登录态
+│   ├── dao/                        # FocusPlanDao、FocusSessionDao、AccountDao
+│   ├── entity/                     # FocusPlan、FocusSession、Account
 │   └── model/DailyStat.kt          # 每日汇总投影
 ├── monitor/
 │   ├── FocusMonitor.kt             # CameraX + ML Kit 采集与推理
 │   └── DistractionJudge.kt         # 分心判定（两级 + 双视角 + 消抖）
 ├── session/
+│   ├── AccountManager.kt           # 登录 / 注册 / 会话保持
 │   ├── FocusSessionManager.kt      # 会话计时、分心累计、阈值判定、结算落库
 │   └── SessionUiState.kt           # 会话状态与阶段枚举
 ├── service/
 │   └── FocusSessionService.kt      # 前台服务：通知栏倒计时与控制
 ├── ui/
-│   ├── MainActivity.kt             # 底部导航 + 跨天自动清理
+│   ├── MainActivity.kt             # 账户栏 + 底部导航 + 跨天自动清理
+│   ├── login/LoginActivity.kt      # 登录 / 注册
+│   ├── admin/                      # 管理员数据管理（列表、明细、清空、删除）
 │   ├── focus/FocusFragment.kt      # 首页
 │   ├── plans/                      # 计划列表、计划编辑
 │   ├── session/FocusSessionActivity.kt  # 专注会话页（监控、语音、结果）
@@ -301,7 +352,7 @@ app/src/main/java/com/ivan/pomodoro/
 
 ---
 
-## 七、构建与打包
+## 八、构建与打包
 
 环境：JDK 17、Android SDK Platform 34、Gradle 8.2、AGP 8.2.0、Kotlin 1.9.20。
 
@@ -333,8 +384,9 @@ keyPassword=ivan@123
 
 ---
 
-## 八、隐私
+## 九、隐私
 
 - 摄像头画面仅在内存中逐帧送入本机 ML Kit 模型，**不截图、不落盘、不上传**。
 - 数据库与会话记录全部保存在应用私有目录，卸载即清除。
+- 账户口令仅在本机做 SHA-256 后存库，不存明文、不联网校验；多账户只用于区分数据，不构成设备级安全防护。
 - 无网络权限申请，无第三方统计 SDK。

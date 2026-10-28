@@ -32,6 +32,8 @@ data class FocusPlan(
      * 1=纸面（写作业/看书，低头书写才算专注，抬头张望才是分心）
      */
     val taskMode: Int = TASK_SCREEN,
+    /** 归属账户，用于多账户数据隔离 */
+    val accountId: Long = 0,
     val archived: Boolean = false,
     val createdAt: Long = System.currentTimeMillis()
 ) {

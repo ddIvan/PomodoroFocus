@@ -8,6 +8,23 @@ class Prefs(context: Context) {
 
     private val sp = context.applicationContext.getSharedPreferences("pomodoro_prefs", Context.MODE_PRIVATE)
 
+    // ---------- 登录态 ----------
+
+    /** 当前登录账户 id，0 表示未登录 */
+    var currentAccountId: Long
+        get() = sp.getLong(KEY_ACCOUNT_ID, 0L)
+        set(value) = sp.edit { putLong(KEY_ACCOUNT_ID, value) }
+
+    /** 当前登录账户名（仅用于界面展示，真身仍以数据库为准） */
+    var currentAccountName: String
+        get() = sp.getString(KEY_ACCOUNT_NAME, "") ?: ""
+        set(value) = sp.edit { putString(KEY_ACCOUNT_NAME, value) }
+
+    /** 当前账户是否管理员 */
+    var currentAccountAdmin: Boolean
+        get() = sp.getBoolean(KEY_ACCOUNT_ADMIN, false)
+        set(value) = sp.edit { putBoolean(KEY_ACCOUNT_ADMIN, value) }
+
     var selectedPlanId: Long
         get() = sp.getLong(KEY_SELECTED_PLAN, 0L)
         set(value) = sp.edit { putLong(KEY_SELECTED_PLAN, value) }
@@ -21,6 +38,11 @@ class Prefs(context: Context) {
     var soundOnComplete: Boolean
         get() = sp.getBoolean(KEY_SOUND, true)
         set(value) = sp.edit { putBoolean(KEY_SOUND, value) }
+
+    /** 专注完成后是否语音播报"您已获得一个番茄" */
+    var voiceOnComplete: Boolean
+        get() = sp.getBoolean(KEY_VOICE_COMPLETE, true)
+        set(value) = sp.edit { putBoolean(KEY_VOICE_COMPLETE, value) }
 
     /**
      * 摄像头专注监控开关。
@@ -42,18 +64,25 @@ class Prefs(context: Context) {
         get() = sp.getBoolean(KEY_VOICE, true)
         set(value) = sp.edit { putBoolean(KEY_VOICE, value) }
 
-    /** 最近一次自动清理历史明细的日期（yyyy-MM-dd），保证每天只清理一次 */
-    var lastAutoClearDateKey: String
-        get() = sp.getString(KEY_LAST_AUTO_CLEAR, "") ?: ""
-        set(value) = sp.edit { putString(KEY_LAST_AUTO_CLEAR, value) }
+    /** 某个账户最近一次自动清理历史明细的日期（yyyy-MM-dd），保证每天只清理一次 */
+    fun autoClearMark(accountId: Long): String =
+        sp.getString("${KEY_LAST_AUTO_CLEAR}_$accountId", "") ?: ""
+
+    fun setAutoClearMark(accountId: Long, dateKey: String) = sp.edit {
+        putString("${KEY_LAST_AUTO_CLEAR}_$accountId", dateKey)
+    }
 
     companion object {
         const val LENS_FRONT = 0
         const val LENS_BACK = 1
 
+        private const val KEY_ACCOUNT_ID = "current_account_id"
+        private const val KEY_ACCOUNT_NAME = "current_account_name"
+        private const val KEY_ACCOUNT_ADMIN = "current_account_admin"
         private const val KEY_SELECTED_PLAN = "selected_plan_id"
         private const val KEY_VIBRATE = "vibrate_on_distraction"
         private const val KEY_SOUND = "sound_on_complete"
+        private const val KEY_VOICE_COMPLETE = "voice_on_complete"
         private const val KEY_LENS = "monitor_lens"
         private const val KEY_MONITOR = "monitor_enabled"
         private const val KEY_VOICE = "voice_on_distraction"

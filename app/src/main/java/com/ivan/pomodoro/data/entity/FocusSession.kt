@@ -31,6 +31,8 @@ data class FocusSession(
     val strictness: Int = 1,
     /** 本次使用的任务类型快照：0=盯屏 1=纸面 */
     val taskMode: Int = 0,
+    /** 归属账户，用于多账户数据隔离 */
+    val accountId: Long = 0,
     /** 检测到分心的次数 */
     val distractionCount: Int = 0,
     /** 累计分心秒数 */

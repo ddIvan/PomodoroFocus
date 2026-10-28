@@ -406,8 +406,32 @@ class FocusSessionActivity : AppCompatActivity() {
         }
     }
 
+    /** 完成一个番茄时的语音播报；TTS 可能还没就绪，做几次短延迟重试 */
+    private fun speakComplete(attempt: Int = 0) {
+        if (!prefs.voiceOnComplete) return
+        if (!ttsInited) initTts()
+        if (!ttsReady) {
+            if (attempt < 6 && !isFinishing && !isDestroyed) {
+                binding.root.postDelayed({ speakComplete(attempt + 1) }, 250L)
+            }
+            return
+        }
+        val code = runCatching {
+            tts?.speak(
+                "您已获得一个番茄",
+                android.speech.tts.TextToSpeech.QUEUE_FLUSH,
+                null,
+                "complete"
+            )
+        }.getOrNull()
+        android.util.Log.i("FocusVoice", "播放完成语音播报 speak=$code")
+        if (code == android.speech.tts.TextToSpeech.ERROR) {
+            ttsReady = false
+        }
+    }
+
     private fun initTts() {
-        if (ttsInited || !prefs.voiceOnDistraction) return
+        if (ttsInited || !(prefs.voiceOnDistraction || prefs.voiceOnComplete)) return
         ttsInited = true
         tts = android.speech.tts.TextToSpeech(this) { status ->
             ttsReady = status == android.speech.tts.TextToSpeech.SUCCESS
@@ -468,6 +492,9 @@ class FocusSessionActivity : AppCompatActivity() {
     private fun showResult(st: SessionUiState) {
         if (resultShown) return
         resultShown = true
+
+        // 完成一个完整时段时先报喜，再弹结果框
+        if (st.phase == SessionPhase.COMPLETED) speakComplete()
 
         val title = when (st.phase) {
             SessionPhase.COMPLETED -> "完成一个番茄"
