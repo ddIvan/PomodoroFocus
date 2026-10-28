@@ -18,10 +18,12 @@ import com.ivan.pomodoro.data.FocusRepository
 import com.ivan.pomodoro.data.Prefs
 import com.ivan.pomodoro.data.entity.FocusPlan
 import com.ivan.pomodoro.databinding.FragmentFocusBinding
+import com.ivan.pomodoro.monitor.MonitorScene
 import com.ivan.pomodoro.session.FocusSessionManager
 import com.ivan.pomodoro.ui.MainActivity
 import com.ivan.pomodoro.ui.common.SessionAdapter
 import com.ivan.pomodoro.ui.session.FocusSessionActivity
+import com.ivan.pomodoro.ui.settings.MonitorSettingsActivity
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.ivan.pomodoro.util.TimeUtils
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -87,6 +89,15 @@ class FocusFragment : Fragment() {
             if (!isChecked) return@addOnButtonCheckedListener
             prefs.monitorLens =
                 if (checkedId == R.id.btnLensBack) Prefs.LENS_BACK else Prefs.LENS_FRONT
+        }
+
+        // 参数按当前计划的场景打开：视角取自开关，盯屏/纸面取自计划的任务类型
+        binding.tvMonitorTune.setOnClickListener {
+            val scene = MonitorScene.of(
+                prefs.monitorLens == Prefs.LENS_BACK,
+                currentPlan?.taskMode == FocusPlan.TASK_PAPER
+            )
+            startActivity(MonitorSettingsActivity.newIntent(requireContext(), scene))
         }
 
         binding.switchVoice.isChecked = prefs.voiceOnDistraction

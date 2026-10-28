@@ -56,6 +56,11 @@
             android:windowSoftInputMode="adjustResize" />
 
         <activity
+            android:name=".ui.settings.MonitorSettingsActivity"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+
+        <activity
             android:name=".ui.session.FocusSessionActivity"
             android:exported="false"
             android:launchMode="singleTop"

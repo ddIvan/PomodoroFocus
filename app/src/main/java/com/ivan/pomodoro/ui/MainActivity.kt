@@ -16,6 +16,7 @@ import com.ivan.pomodoro.R
 import com.ivan.pomodoro.data.FocusRepository
 import com.ivan.pomodoro.data.Prefs
 import com.ivan.pomodoro.databinding.ActivityMainBinding
+import com.ivan.pomodoro.monitor.MonitorScene
 import com.ivan.pomodoro.session.AccountManager
 import com.ivan.pomodoro.session.FocusSessionManager
 import com.ivan.pomodoro.ui.admin.AdminActivity
@@ -25,6 +26,7 @@ import com.ivan.pomodoro.ui.login.LoginActivity
 import com.ivan.pomodoro.ui.login.RegisterDialog
 import com.ivan.pomodoro.ui.plans.PlansFragment
 import com.ivan.pomodoro.ui.session.FocusSessionActivity
+import com.ivan.pomodoro.ui.settings.MonitorSettingsActivity
 import com.ivan.pomodoro.ui.stats.StatsFragment
 import com.ivan.pomodoro.util.TimeUtils
 import kotlinx.coroutines.launch
@@ -153,6 +155,16 @@ class MainActivity : AppCompatActivity() {
                 R.id.action_switch_account, R.id.action_logout -> {
                     AccountManager.logout()
                     redirectToLogin()
+                    true
+                }
+
+                R.id.action_monitor_settings -> {
+                    val prefs = Prefs(this)
+                    val scene = MonitorScene.of(
+                        prefs.monitorLens == Prefs.LENS_BACK,
+                        false
+                    )
+                    startActivity(MonitorSettingsActivity.newIntent(this, scene))
                     true
                 }
 
