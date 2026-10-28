@@ -63,6 +63,9 @@ class FocusMonitor(
     private var lastLuma: ByteArray? = null
     private var started = false
 
+    /** 诊断日志节流：3 帧/秒的检测结果没必要每帧都打 */
+    private var lastLogAt = 0L
+
     /** 分析线程与主线程都会读写，必须 volatile，否则退出时可能有帧漏进已关闭的回调 */
     @Volatile
     private var closed = false
@@ -255,29 +258,58 @@ class FocusMonitor(
         val verdict = judge.evaluate(
             faces, SystemClock.elapsedRealtime(), width, height, motionActive
         )
-        if (motionActive >= 0f) {
-            val face = faces.maxByOrNull {
-                it.boundingBox.width().toLong() * it.boundingBox.height().toLong()
-            }
-            val faceInfo = if (face == null) "无" else "%.0f%%@(%.2f,%.2f)".format(
+        logFrame(faces, width, height, motionActive, verdict)
+        onVerdict(verdict, true)
+    }
+
+    /**
+     * 每秒打一行诊断日志：人脸姿态角、睁眼概率、画面活动量与判定结果。
+     * 纸面前置的低头/抬头判据完全依赖 pitch 的正负方向，这行日志是校准阈值的唯一依据。
+     */
+    private fun logFrame(
+        faces: List<com.google.mlkit.vision.face.Face>,
+        width: Int,
+        height: Int,
+        motionActive: Float,
+        verdict: DistractionJudge.Verdict
+    ) {
+        val now = SystemClock.elapsedRealtime()
+        if (now - lastLogAt < LOG_INTERVAL_MS) return
+        lastLogAt = now
+
+        val face = faces.maxByOrNull {
+            it.boundingBox.width().toLong() * it.boundingBox.height().toLong()
+        }
+        val faceInfo = if (face == null) {
+            "无"
+        } else {
+            "%.0f%% pitch=%.1f yaw=%.1f roll=%.1f 眼L=%.2f 眼R=%.2f 中心=(%.2f,%.2f)".format(
                 face.boundingBox.width() * face.boundingBox.height() * 100f /
                     (width.toFloat() * height.toFloat()),
+                face.headEulerAngleX,
+                face.headEulerAngleY,
+                face.headEulerAngleZ,
+                face.leftEyeOpenProbability ?: -1f,
+                face.rightEyeOpenProbability ?: -1f,
                 (face.boundingBox.left + face.boundingBox.right) / 2f / width,
                 (face.boundingBox.top + face.boundingBox.bottom) / 2f / height
             )
-            Log.d(
-                TAG,
-                "人脸=%d(%s) 活动=%.4f 变化格=%.2f%% 峰值=%.3f 判分心=%s".format(
-                    faces.size,
-                    faceInfo,
-                    lastMotionStats[0].coerceAtLeast(0f),
-                    motionActive * 100f,
-                    lastMotionStats[2].coerceAtLeast(0f),
-                    verdict.distracted
-                )
-            )
         }
-        onVerdict(verdict, true)
+        val motionInfo = if (motionActive >= 0f) {
+            "活动=%.4f 变化格=%.2f%% 峰值=%.3f".format(
+                lastMotionStats[0].coerceAtLeast(0f),
+                motionActive * 100f,
+                lastMotionStats[2].coerceAtLeast(0f)
+            )
+        } else {
+            "活动=-"
+        }
+        Log.d(
+            TAG,
+            "人脸=%d(%s) %s 判分心=%s 原因=%s 提示=%s".format(
+                faces.size, faceInfo, motionInfo, verdict.distracted, verdict.reason, verdict.note
+            )
+        )
     }
 
     companion object {
@@ -289,5 +321,8 @@ class FocusMonitor(
 
         /** 判定为"这一格真的在变"的最小灰度差 */
         private const val ACTIVE_DIFF = 20
+
+        /** 诊断日志最短间隔 */
+        private const val LOG_INTERVAL_MS = 1000L
     }
 }

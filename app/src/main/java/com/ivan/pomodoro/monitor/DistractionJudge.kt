@@ -222,7 +222,13 @@ class DistractionJudge(
 
     /**
      * 纸面：低头书写才是专注。
-     * 注意俯角较大时 ML Kit 的睁眼概率不可靠，因此低头区间内不判闭眼。
+     *
+     * ML Kit 的 headEulerAngleX 实测为**正值=抬头、负值=低头**
+     * （低头看桌面或手机约 -10 ~ -17，正对手机平视约 +9 ~ +13），
+     * 所以低头用 pitch <= 阈值判断，抬头用 pitch >= 阈值判断，不要写反。
+     *
+     * 注意俯角较大时 ML Kit 的睁眼概率不可靠（低头实测只有 0.02），
+     * 因此低头区间内不判闭眼。
      */
     private fun judgePaperFront(face: Face, now: Long) {
         val yaw = face.headEulerAngleY
@@ -236,10 +242,10 @@ class DistractionJudge(
                 markInstant(true, true, "请不要东张西望，回到手头任务", 0L, now)
 
             // 低头区间：正在书写/看书，作为专注证据
-            pitch >= PAPER_WORK_PITCH_MIN -> markInstant(false, false, "", 0L, now)
+            pitch <= PAPER_WORK_PITCH_MAX -> markInstant(false, false, "", 0L, now)
 
             // 仰头张望：持续 20 秒升级为作废级
-            pitch <= PAPER_LOOK_UP_PITCH_MAX -> markInstant(
+            pitch >= PAPER_LOOK_UP_PITCH_MIN -> markInstant(
                 true, false, "检测到抬头，请继续专注于手头任务", PAPER_LOOK_UP_SEVERE_MS, now
             )
 
@@ -325,10 +331,18 @@ class DistractionJudge(
         private const val LOOK_DOWN_PITCH = 32f
         private const val OVERHEAD_MAX_OFFSET = 0.40f
 
-        /** 纸面任务：扭头阈值放宽，仰头阈值与升级时长 */
+        /** 纸面任务：扭头阈值放宽，低头/抬头分界与升级时长 */
         private const val PAPER_HEAD_AWAY_YAW = 45f
-        private const val PAPER_WORK_PITCH_MIN = 18f
-        private const val PAPER_LOOK_UP_PITCH_MAX = -8f
+
+        /** 低头区间上限：pitch 越负头越低。实测低头看桌面/键盘 -10 ~ -17 */
+        private const val PAPER_WORK_PITCH_MAX = -8f
+
+        /**
+         * 抬头区间下限。手机斜向上放置（支架/靠立）时，平视看屏幕 pitch 只有 0 上下，
+         * 真实抬高才 +6 ~ +13，取值必须压到 0 附近，否则"看屏幕"会落在灰区被放过。
+         * -4 既覆盖斜放平视，又给临界抖动留出 4° 缓冲（与低头线 -8 之间为灰区）。
+         */
+        private const val PAPER_LOOK_UP_PITCH_MIN = -4f
         private const val PAPER_LOOK_UP_SEVERE_MS = 20_000L
         private const val PAPER_EYES_SEVERE_MS = 30_000L
         private const val PAPER_OFF_SEAT_SEVERE_MS = 30_000L
