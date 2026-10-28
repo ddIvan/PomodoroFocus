@@ -26,6 +26,7 @@ import com.ivan.pomodoro.ui.session.FocusSessionActivity
 import com.ivan.pomodoro.ui.settings.MonitorSettingsActivity
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.ivan.pomodoro.util.TimeUtils
+import com.ivan.pomodoro.util.TtsSpeaker
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flatMapLatest
@@ -54,6 +55,9 @@ class FocusFragment : Fragment() {
 
     /** 程序化写入开关时跳过监听，避免把默认值当成用户操作持久化 */
     private var suppressMonitorCallback = false
+
+    /** 「检测语音」用的引擎实例，离开页面即释放 */
+    private var voiceSpeaker: TtsSpeaker? = null
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
@@ -103,6 +107,25 @@ class FocusFragment : Fragment() {
         binding.switchVoice.isChecked = prefs.voiceOnDistraction
         binding.switchVoice.setOnCheckedChangeListener { _, checked ->
             prefs.voiceOnDistraction = checked
+        }
+
+        // 检测语音：播一句验证引擎真的出声，缺语音包时直接说清该去哪里设置
+        binding.tvVoiceTest.setOnClickListener {
+            val speaker = voiceSpeaker ?: TtsSpeaker(requireContext()).also { s ->
+                s.onUnavailable = {
+                    val ctx = context
+                    if (ctx != null) {
+                        Toast.makeText(
+                            ctx,
+                            "系统语音引擎不可用：请在「设置 → 辅助功能 → 文本转语音」中启用引擎并下载中文语音包",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
+                }
+                voiceSpeaker = s
+            }
+            speaker.prepare()
+            speaker.speak("可以播放语音")
         }
 
         binding.tvClearToday.setOnClickListener { confirmClearToday() }
@@ -286,6 +309,8 @@ class FocusFragment : Fragment() {
     }
 
     override fun onDestroyView() {
+        voiceSpeaker?.shutdown()
+        voiceSpeaker = null
         super.onDestroyView()
         _binding = null
     }

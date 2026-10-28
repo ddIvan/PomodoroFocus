@@ -47,9 +47,7 @@ class FocusSessionActivity : AppCompatActivity() {
     private var distractionWarned = false
     private var lastLens = com.ivan.pomodoro.data.Prefs.LENS_FRONT
     private var abandonDialog: androidx.appcompat.app.AlertDialog? = null
-    private var tts: android.speech.tts.TextToSpeech? = null
-    private var ttsReady = false
-    private var ttsInited = false
+    private lateinit var speaker: com.ivan.pomodoro.util.TtsSpeaker
     private var lastVoiceAt = 0L
 
     private val prefs by lazy { com.ivan.pomodoro.data.Prefs(this) }
@@ -78,6 +76,11 @@ class FocusSessionActivity : AppCompatActivity() {
         FocusSessionManager.init(this)
         resultShown = savedInstanceState?.getBoolean(STATE_RESULT_SHOWN) ?: false
 
+        // 提前加载语音引擎，开场提示与首次分心提醒才能立即出声。
+        // 放在下面的提前返回之前，保证 onDestroy 里能安全释放。
+        speaker = com.ivan.pomodoro.util.TtsSpeaker(this)
+        speaker.prepare()
+
         // 进程被回收后从通知进入：会话状态已丢失，直接退出并清理残留服务
         if (intent.getBooleanExtra(EXTRA_FROM_NOTIFICATION, false) &&
             !FocusSessionManager.state.value.isActive
@@ -89,9 +92,6 @@ class FocusSessionActivity : AppCompatActivity() {
 
         setupButtons()
         observeState()
-
-        // 提前加载语音引擎，首次分心时才能立即播报
-        initTts()
 
         lastLens = prefs.monitorLens
         if (FocusSessionManager.state.value.isActive) {
@@ -124,6 +124,8 @@ class FocusSessionActivity : AppCompatActivity() {
             }
             lastMonitorEnabled = monitorEnabled
             FocusSessionManager.startSession(plan, monitorEnabled, plan.strictness)
+            // 只在真正新开一段专注时播报；从通知恢复的会话不会走到这里
+            speakStart()
         }
     }
 
@@ -177,12 +179,7 @@ class FocusSessionActivity : AppCompatActivity() {
         monitor = null
         abandonDialog?.dismiss()
         abandonDialog = null
-        runCatching {
-            tts?.stop()
-            tts?.shutdown()
-        }
-        tts = null
-        ttsReady = false
+        speaker.shutdown()
         super.onDestroy()
     }
 
@@ -384,96 +381,31 @@ class FocusSessionActivity : AppCompatActivity() {
         }
     }
 
+    /** 开场提示：进入专注立即播报；引擎未就绪时由 TtsSpeaker 排队补播 */
+    private fun speakStart() {
+        speaker.speak("开始您的专注活动")
+    }
+
     /** 语音提醒：开关打开且引擎可用时播报，并限制最小间隔避免连续播报 */
     private fun speakDistraction() {
         if (!prefs.voiceOnDistraction) return
-        if (!ttsInited) {
-            initTts()
-            return
-        }
-        if (!ttsReady) return
+        if (!speaker.isReady) return
         val now = android.os.SystemClock.elapsedRealtime()
         if (now - lastVoiceAt < VOICE_INTERVAL_MS) return
         lastVoiceAt = now
-        val code = runCatching {
-            tts?.speak(
-                "请不要分心",
-                android.speech.tts.TextToSpeech.QUEUE_FLUSH,
-                null,
-                "distraction"
-            )
-        }.getOrNull()
-        android.util.Log.i("FocusVoice", "播放分心语音提醒 speak=$code")
-        if (code == android.speech.tts.TextToSpeech.ERROR) {
-            ttsReady = false
-        }
+        speaker.speak("请不要分心")
     }
 
     /** 完成一个番茄时的语音播报；TTS 可能还没就绪，做几次短延迟重试 */
     private fun speakComplete(attempt: Int = 0) {
         if (!prefs.voiceOnComplete) return
-        if (!ttsInited) initTts()
-        if (!ttsReady) {
+        if (!speaker.isReady) {
             if (attempt < 6 && !isFinishing && !isDestroyed) {
                 binding.root.postDelayed({ speakComplete(attempt + 1) }, 250L)
             }
             return
         }
-        val code = runCatching {
-            tts?.speak(
-                "您已获得一个番茄",
-                android.speech.tts.TextToSpeech.QUEUE_FLUSH,
-                null,
-                "complete"
-            )
-        }.getOrNull()
-        android.util.Log.i("FocusVoice", "播放完成语音播报 speak=$code")
-        if (code == android.speech.tts.TextToSpeech.ERROR) {
-            ttsReady = false
-        }
-    }
-
-    private fun initTts() {
-        if (ttsInited || !(prefs.voiceOnDistraction || prefs.voiceOnComplete)) return
-        ttsInited = true
-        tts = android.speech.tts.TextToSpeech(this) { status ->
-            ttsReady = status == android.speech.tts.TextToSpeech.SUCCESS
-            android.util.Log.i("FocusVoice", "TTS 初始化结果：status=$status ready=$ttsReady")
-            if (ttsReady) {
-                runCatching {
-                    val lang = tts?.setLanguage(java.util.Locale.SIMPLIFIED_CHINESE)
-                    android.util.Log.i("FocusVoice", "TTS 语言设置结果：$lang")
-                    if (lang == android.speech.tts.TextToSpeech.LANG_MISSING_DATA ||
-                        lang == android.speech.tts.TextToSpeech.LANG_NOT_SUPPORTED
-                    ) {
-                        tts?.setLanguage(java.util.Locale.getDefault())
-                    }
-                    // 走提示音通道，保证媒体音量较低时也能听见
-                    tts?.setAudioAttributes(
-                        android.media.AudioAttributes.Builder()
-                            .setUsage(android.media.AudioAttributes.USAGE_ASSISTANCE_SONIFICATION)
-                            .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SPEECH)
-                            .build()
-                    )
-                    tts?.setOnUtteranceProgressListener(
-                        object : android.speech.tts.UtteranceProgressListener() {
-                            override fun onStart(utteranceId: String?) {
-                                android.util.Log.i("FocusVoice", "语音开始播放")
-                            }
-
-                            override fun onDone(utteranceId: String?) {
-                                android.util.Log.i("FocusVoice", "语音播放完成")
-                            }
-
-                            @Deprecated("Deprecated in Java")
-                            override fun onError(utteranceId: String?) {
-                                android.util.Log.w("FocusVoice", "语音播放失败：$utteranceId")
-                            }
-                        }
-                    )
-                }
-            }
-        }
+        speaker.speak("您已获得一个番茄")
     }
 
     private fun confirmAbandon() {
