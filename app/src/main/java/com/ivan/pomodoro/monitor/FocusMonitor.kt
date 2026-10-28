@@ -218,9 +218,20 @@ class FocusMonitor(
             faces, SystemClock.elapsedRealtime(), width, height, motionActive
         )
         if (motionActive >= 0f) {
+            val face = faces.maxByOrNull {
+                it.boundingBox.width().toLong() * it.boundingBox.height().toLong()
+            }
+            val faceInfo = if (face == null) "无" else "%.0f%%@(%.2f,%.2f)".format(
+                face.boundingBox.width() * face.boundingBox.height() * 100f /
+                    (width.toFloat() * height.toFloat()),
+                (face.boundingBox.left + face.boundingBox.right) / 2f / width,
+                (face.boundingBox.top + face.boundingBox.bottom) / 2f / height
+            )
             Log.d(
                 TAG,
-                "画面活动=%.4f 变化格=%.2f%% 峰值=%.3f 判分心=%s".format(
+                "人脸=%d(%s) 活动=%.4f 变化格=%.2f%% 峰值=%.3f 判分心=%s".format(
+                    faces.size,
+                    faceInfo,
                     lastMotionStats[0].coerceAtLeast(0f),
                     motionActive * 100f,
                     lastMotionStats[2].coerceAtLeast(0f),

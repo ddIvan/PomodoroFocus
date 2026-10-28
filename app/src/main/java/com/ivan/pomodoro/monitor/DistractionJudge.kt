@@ -11,9 +11,12 @@ import kotlin.math.abs
  * - [Task] 任务类型：盯屏（看网课、看视频）/ 纸面（写作业、看书）
  *
  * 盯屏任务的判据是"是否看着屏幕"；纸面任务则相反——低头书写才是专注证据，
- * 抬头张望才是分心，俯拍时只看到头发/头顶属于常态，不能当作离席。
- * 因此纸面俯拍完全不以"有没有脸"判定，而是看画面里还有没有人像前景
- * （手、头发、头顶）或者明显动作，两者都没有才认为人离开座位。
+ * 抬头张望才是分心，俯拍时只看到手和笔属于常态，不能当作离席。
+ *
+ * 纸面 + 俯拍按三档判定：
+ * 1. 检测到人脸（抬头的一瞬间）→ 人在座位，专注；
+ * 2. 看不到脸但画面里有明显动作（笔在手在动）→ 正在书写，专注；
+ * 3. 既看不到脸、画面也长时间没有动静 → 人已离开，分心。
  *
  * 判定分级：
  * - 作废级（severe）：确认离开座位、大幅扭头看别处等强信号，累计后可能导致本次失败。
@@ -82,6 +85,12 @@ class DistractionJudge(
             }
             when {
                 face == null -> markInstant(false, false, "", 0L, now)
+                // 纸面俯拍：看到脸说明人就在座位上，直接算专注。
+                // 俯角大时人脸常落在画面边缘，按中心偏移判"离座"会误报。
+                mode == Mode.OVERHEAD && task == Task.PAPER -> {
+                    quietSince = now
+                    markInstant(false, false, "", 0L, now)
+                }
                 mode == Mode.OVERHEAD -> judgeOverhead(face, now, imageWidth, imageHeight)
                 task == Task.PAPER -> judgePaperFront(face, now)
                 else -> judgeScreenFront(face, now)
@@ -304,8 +313,11 @@ class DistractionJudge(
          */
         private const val PAPER_ACTIVE_MIN = 0.01f
 
-        /** 纸面俯拍：画面静止多久开始提示、多久升级为作废级（覆盖思考停顿） */
-        private const val PAPER_QUIET_HINT_MS = 8_000L
+        /**
+         * 纸面俯拍：画面静止多久开始提示、多久升级为作废级。
+         * 实测书写中停笔思考会有 5~10 秒的完全静止，取 12 秒避免误报。
+         */
+        private const val PAPER_QUIET_HINT_MS = 12_000L
         private const val PAPER_QUIET_SEVERE_MS = 45_000L
 
         private const val HOLD_MS = 1500L
