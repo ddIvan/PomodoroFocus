@@ -34,7 +34,7 @@
 
 | 账号 | 口令 | 角色 | 预置数据 |
 | --- | --- | --- | --- |
-| `zhengfy` | `123456` | 普通用户 | 2026-10-27 的 2 个番茄（两次 25 分钟完成记录） |
+| `zhengfy` | `123456` | 普通用户 | 2026-10-27 的 2 个已完成番茄（该日不足 2 个时补齐，升级用户已有的真实记录优先保留） |
 | `admin` | `123456` | 管理员 | 无，用于管理全部账户数据 |
 
 ### 2. 登录与注册
@@ -265,11 +265,12 @@
 
 ## 六、数据模型
 
-Room 数据库 `pomodoro.db`，版本 4：
+Room 数据库 `pomodoro.db`，版本 5：
 
 - v1→v2：`focus_sessions` 增加 `cleared INTEGER NOT NULL DEFAULT 0`。
 - v2→v3：`focus_plans`、`focus_sessions` 各增加 `taskMode INTEGER NOT NULL DEFAULT 0`（`0` 盯屏 / `1` 纸面），老数据自动落到"盯屏"。
 - v3→v4：新建 `accounts` 表并写入预置账户；`focus_plans`、`focus_sessions` 各增加 `accountId INTEGER NOT NULL DEFAULT 0`，历史数据统一归到 `zhengfy`，同时补 2 条 2026-10-27 的完成记录。全新安装走 `RoomDatabase.Callback.onCreate`，播种逻辑与迁移共用，按开始时间去重保证幂等。
+- v4→v5：把 2026-10-27 的完成记录收敛到 2 个——升级用户当天可能已有自己的记录，v4 又补了预置记录，多出来的预置记录（`planName = 番茄专注`）按开始时间倒序删掉，保证该日"默认 2 个番茄"的预期不被历史数据打破。
 
 **accounts**
 
