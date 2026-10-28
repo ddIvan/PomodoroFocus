@@ -28,6 +28,8 @@ class FocusMonitor(
     private val previewView: PreviewView,
     private val lens: Lens = Lens.FRONT,
     private val task: DistractionJudge.Task = DistractionJudge.Task.SCREEN,
+    /** 判定参数，来自设置页中该场景的配置 */
+    private val profile: MonitorProfile = MonitorProfile.DEFAULT,
     private val onVerdict: (DistractionJudge.Verdict, Boolean) -> Unit
 ) {
 
@@ -36,7 +38,8 @@ class FocusMonitor(
 
     private val judge = DistractionJudge(
         mode = if (lens == Lens.BACK) DistractionJudge.Mode.OVERHEAD else DistractionJudge.Mode.FRONT,
-        task = task
+        task = task,
+        profile = profile
     )
     private val detector = FaceDetection.getClient(
         FaceDetectorOptions.Builder()
@@ -138,7 +141,7 @@ class FocusMonitor(
             return
         }
         val now = SystemClock.elapsedRealtime()
-        if (now - lastAnalyzeAt < 300L) {
+        if (now - lastAnalyzeAt < profile.analysisIntervalMs) {
             proxy.close()
             return
         }
@@ -238,7 +241,7 @@ class FocusMonitor(
                 (grid[i].toInt() and 0xFF) - (previous[i].toInt() and 0xFF)
             )
             sum += diff
-            if (diff >= ACTIVE_DIFF) active++
+            if (diff >= profile.motionDiff) active++
             if (diff > maxDiff) maxDiff = diff
         }
         return floatArrayOf(
@@ -318,9 +321,6 @@ class FocusMonitor(
         /** 活动检测的降采样网格 */
         private const val GRID_W = 32
         private const val GRID_H = 24
-
-        /** 判定为"这一格真的在变"的最小灰度差 */
-        private const val ACTIVE_DIFF = 20
 
         /** 诊断日志最短间隔 */
         private const val LOG_INTERVAL_MS = 1000L

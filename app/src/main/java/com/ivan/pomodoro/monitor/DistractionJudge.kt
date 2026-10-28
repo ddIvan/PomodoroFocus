@@ -25,7 +25,9 @@ import kotlin.math.abs
  */
 class DistractionJudge(
     private val mode: Mode = Mode.FRONT,
-    private val task: Task = Task.SCREEN
+    private val task: Task = Task.SCREEN,
+    /** 判定参数，由设置页按场景配置；缺省用出厂值 */
+    private val profile: MonitorProfile = MonitorProfile.DEFAULT
 ) {
 
     enum class Mode { FRONT, OVERHEAD }
@@ -97,9 +99,9 @@ class DistractionJudge(
             }
         }
 
-        // 消抖：状态需持续 HOLD_MS 才上报/解除，过滤眨眼与瞬时抖动
+        // 消抖：状态需持续 holdMs 才上报/解除，过滤眨眼与瞬时抖动
         if (instantDistracted) {
-            if (now - instantSince >= HOLD_MS) {
+            if (now - instantSince >= profile.holdMs) {
                 if (!reportedDistracted) {
                     reportedDistracted = true
                     reportedSevere = instantSevere
@@ -114,7 +116,7 @@ class DistractionJudge(
             ) {
                 reportedSevere = true
             }
-        } else if (reportedDistracted && now - instantSince >= HOLD_MS) {
+        } else if (reportedDistracted && now - instantSince >= profile.holdMs) {
             reportedDistracted = false
             reportedSevere = false
         }
@@ -138,16 +140,16 @@ class DistractionJudge(
                 // 拿不到画面数据时退回静默：宁可漏报，也不误报
                 task == Task.PAPER -> markInstant(false, false, "", 0L, now)
 
-                gap >= OVERHEAD_SEVERE_NO_FACE_MS ->
+                gap >= profile.overheadNoFaceSevereMs ->
                     markInstant(true, true, "长时间未检测到人，请回到座位", 0L, now)
 
-                gap >= OVERHEAD_NO_FACE_DELAY_MS ->
+                gap >= profile.overheadNoFaceDelayMs ->
                     markInstant(true, false, "未检测到人脸，请回到座位", 0L, now)
             }
 
             Mode.FRONT -> when {
                 // 纸面任务低头时头顶会挡住脸，无人脸视为"正在低头"，不判分心
-                task == Task.PAPER && gap >= PAPER_FRONT_NO_FACE_HINT_MS ->
+                task == Task.PAPER && gap >= profile.paperNoFaceHintMs ->
                     markInstant(
                         false, false, "", 0L, now,
                         note = "长时间没看到你，请确认还在镜头前"
@@ -155,7 +157,7 @@ class DistractionJudge(
 
                 task == Task.PAPER -> markInstant(false, false, "", 0L, now)
 
-                gap >= NO_FACE_DELAY_MS ->
+                gap >= profile.noFaceDelayMs ->
                     markInstant(true, true, "未检测到人脸，请回到镜头前", 0L, now)
             }
         }
@@ -175,7 +177,7 @@ class DistractionJudge(
      * 短暂的停顿不会提示。
      */
     private fun judgePaperOverheadMotion(motionActive: Float, now: Long) {
-        if (motionActive >= PAPER_ACTIVE_MIN) {
+        if (motionActive >= profile.paperActiveMin) {
             quietSince = now
             markInstant(false, false, "", 0L, now)
             return
@@ -183,13 +185,13 @@ class DistractionJudge(
         if (quietSince == 0L) quietSince = now
         val quiet = now - quietSince
         when {
-            quiet >= PAPER_QUIET_SEVERE_MS ->
+            quiet >= profile.paperQuietSevereMs ->
                 markInstant(true, true, "画面长时间没有动静，请回到座位继续书写", 0L, now)
 
-            quiet >= PAPER_QUIET_HINT_MS ->
+            quiet >= profile.paperQuietHintMs ->
                 markInstant(
                     true, false, "画面没有动静，请确认还在写作业",
-                    PAPER_QUIET_SEVERE_MS, now
+                    profile.paperQuietSevereMs, now
                 )
 
             else -> markInstant(false, false, "", 0L, now)
@@ -207,13 +209,15 @@ class DistractionJudge(
 
         when {
             // 头部大幅偏离：扭头看别处，属于强信号
-            abs(yaw) > HEAD_AWAY_YAW -> markInstant(true, true, "头部偏离屏幕，请面向镜头", 0L, now)
+            abs(yaw) > profile.yawLimit ->
+                markInstant(true, true, "头部偏离屏幕，请面向镜头", 0L, now)
 
             // 低头（写字/看书）与闭眼：只提醒，不累计作废
-            abs(pitch) > LOOK_DOWN_PITCH ->
+            abs(pitch) > profile.lookDownPitch ->
                 markInstant(true, false, "检测到低头，请适当抬头看屏幕", 0L, now)
 
-            leftEye != null && rightEye != null && leftEye < 0.2f && rightEye < 0.2f ->
+            leftEye != null && rightEye != null &&
+                leftEye < profile.eyeOpenMin && rightEye < profile.eyeOpenMin ->
                 markInstant(true, false, "检测到闭眼，请保持清醒", 0L, now)
 
             else -> markInstant(false, false, "", 0L, now)
@@ -238,20 +242,21 @@ class DistractionJudge(
 
         when {
             // 大幅扭头看别处：纸面任务下最典型的分心
-            abs(yaw) > PAPER_HEAD_AWAY_YAW ->
+            abs(yaw) > profile.yawLimit ->
                 markInstant(true, true, "请不要东张西望，回到手头任务", 0L, now)
 
             // 低头区间：正在书写/看书，作为专注证据
-            pitch <= PAPER_WORK_PITCH_MAX -> markInstant(false, false, "", 0L, now)
+            pitch <= profile.paperWorkPitchMax -> markInstant(false, false, "", 0L, now)
 
-            // 仰头张望：持续 20 秒升级为作废级
-            pitch >= PAPER_LOOK_UP_PITCH_MIN -> markInstant(
-                true, false, "检测到抬头，请继续专注于手头任务", PAPER_LOOK_UP_SEVERE_MS, now
+            // 仰头张望：持续够久升级为作废级
+            pitch >= profile.paperLookUpPitchMin -> markInstant(
+                true, false, "检测到抬头，请继续专注于手头任务", profile.lookUpSevereMs, now
             )
 
-            // 平视灰区里的闭眼：持续 30 秒升级为作废级
-            leftEye != null && rightEye != null && leftEye < 0.2f && rightEye < 0.2f ->
-                markInstant(true, false, "检测到闭眼，请保持清醒", PAPER_EYES_SEVERE_MS, now)
+            // 平视灰区里的闭眼：持续够久升级为作废级
+            leftEye != null && rightEye != null &&
+                leftEye < profile.eyeOpenMin && rightEye < profile.eyeOpenMin ->
+                markInstant(true, false, "检测到闭眼，请保持清醒", profile.eyesSevereMs, now)
 
             // 平视灰区：既不算专注证据，也不算分心
             else -> markInstant(false, false, "", 0L, now)
@@ -271,8 +276,8 @@ class DistractionJudge(
         val cy = (box.top + box.bottom) / 2f / height
         val offX = abs(cx - 0.5f)
         val offY = abs(cy - 0.5f)
-        if (offX > OVERHEAD_MAX_OFFSET || offY > OVERHEAD_MAX_OFFSET) {
-            val escalate = if (task == Task.PAPER) PAPER_OFF_SEAT_SEVERE_MS else 0L
+        if (offX > profile.overheadMaxOffset || offY > profile.overheadMaxOffset) {
+            val escalate = if (task == Task.PAPER) profile.offSeatSevereMs else 0L
             val reason = if (task == Task.PAPER) {
                 "已离开座位区域，请回到座位"
             } else {
@@ -302,49 +307,6 @@ class DistractionJudge(
         if (!value && note.isNotEmpty()) lastNote = note
     }
 
-    companion object {
-        /** 盯屏：无人脸多久判分心 */
-        private const val NO_FACE_DELAY_MS = 4000L
-
-        /** 盯屏俯拍：先提醒、久未出现才升级为作废级 */
-        private const val OVERHEAD_NO_FACE_DELAY_MS = 6000L
-        private const val OVERHEAD_SEVERE_NO_FACE_MS = 25_000L
-
-        /** 纸面前置：无脸只做提示，不计分心 */
-        private const val PAPER_FRONT_NO_FACE_HINT_MS = 60_000L
-
-        /**
-         * 纸面俯拍：显著变化格占比达到该值即视为手在动。
-         * 空桌面噪声峰值 0.26%，书写实测 11%~78%，取 1% 留足余量。
-         */
-        private const val PAPER_ACTIVE_MIN = 0.01f
-
-        /**
-         * 纸面俯拍：画面静止多久开始提示、多久升级为作废级。
-         * 实测书写中停笔思考会有 5~10 秒的完全静止，取 12 秒避免误报。
-         */
-        private const val PAPER_QUIET_HINT_MS = 12_000L
-        private const val PAPER_QUIET_SEVERE_MS = 45_000L
-
-        private const val HOLD_MS = 1500L
-        private const val HEAD_AWAY_YAW = 42f
-        private const val LOOK_DOWN_PITCH = 32f
-        private const val OVERHEAD_MAX_OFFSET = 0.40f
-
-        /** 纸面任务：扭头阈值放宽，低头/抬头分界与升级时长 */
-        private const val PAPER_HEAD_AWAY_YAW = 45f
-
-        /** 低头区间上限：pitch 越负头越低。实测低头看桌面/键盘 -10 ~ -17 */
-        private const val PAPER_WORK_PITCH_MAX = -8f
-
-        /**
-         * 抬头区间下限。手机斜向上放置（支架/靠立）时，平视看屏幕 pitch 只有 0 上下，
-         * 真实抬高才 +6 ~ +13，取值必须压到 0 附近，否则"看屏幕"会落在灰区被放过。
-         * -4 既覆盖斜放平视，又给临界抖动留出 4° 缓冲（与低头线 -8 之间为灰区）。
-         */
-        private const val PAPER_LOOK_UP_PITCH_MIN = -4f
-        private const val PAPER_LOOK_UP_SEVERE_MS = 20_000L
-        private const val PAPER_EYES_SEVERE_MS = 30_000L
-        private const val PAPER_OFF_SEAT_SEVERE_MS = 30_000L
-    }
+    // 阈值不再内置在这里：出厂值、实测依据与可调范围见 [MonitorProfile]，
+    // 使用中由设置页按场景（视角 × 任务）分别配置，判定逻辑只读 profile。
 }

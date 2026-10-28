@@ -221,7 +221,14 @@ class FocusSessionActivity : AppCompatActivity() {
         } else {
             com.ivan.pomodoro.monitor.DistractionJudge.Task.SCREEN
         }
-        val m = FocusMonitor(this, this, binding.previewView, lens, task) { verdict, active ->
+        // 参数按本次专注的场景取：视角来自开关，任务类型来自计划
+        val scene = com.ivan.pomodoro.monitor.MonitorScene.of(
+            lens == FocusMonitor.Lens.BACK,
+            task == com.ivan.pomodoro.monitor.DistractionJudge.Task.PAPER
+        )
+        val profile = prefs.monitorProfile(scene)
+
+        val m = FocusMonitor(this, this, binding.previewView, lens, task, profile) { verdict, active ->
             FocusSessionManager.updateMonitor(
                 active, verdict.distracted, verdict.severe, verdict.reason, verdict.note
             )

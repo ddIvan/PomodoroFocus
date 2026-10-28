@@ -2,6 +2,8 @@ package com.ivan.pomodoro.data
 
 import android.content.Context
 import androidx.core.content.edit
+import com.ivan.pomodoro.monitor.MonitorProfile
+import com.ivan.pomodoro.monitor.MonitorScene
 
 /** 轻量偏好设置 */
 class Prefs(context: Context) {
@@ -64,6 +66,26 @@ class Prefs(context: Context) {
         get() = sp.getBoolean(KEY_VOICE, true)
         set(value) = sp.edit { putBoolean(KEY_VOICE, value) }
 
+    // ---------- 监控参数（按场景各存一份） ----------
+
+    /** 读取某场景的监控参数；没改过就用该场景的出厂值 */
+    fun monitorProfile(scene: MonitorScene): MonitorProfile =
+        MonitorProfile.fromJson(sp.getString(KEY_MONITOR_PROFILE + scene.key, null))
+            ?: MonitorProfile.defaultFor(scene)
+
+    /** 该场景是否被手动调过参数（用于设置页提示"已自定义"） */
+    fun hasMonitorProfile(scene: MonitorScene): Boolean =
+        sp.contains(KEY_MONITOR_PROFILE + scene.key)
+
+    fun saveMonitorProfile(scene: MonitorScene, profile: MonitorProfile) = sp.edit {
+        putString(KEY_MONITOR_PROFILE + scene.key, profile.toJson())
+    }
+
+    /** 恢复某场景的出厂参数 */
+    fun resetMonitorProfile(scene: MonitorScene) = sp.edit {
+        remove(KEY_MONITOR_PROFILE + scene.key)
+    }
+
     /** 某个账户最近一次自动清理历史明细的日期（yyyy-MM-dd），保证每天只清理一次 */
     fun autoClearMark(accountId: Long): String =
         sp.getString("${KEY_LAST_AUTO_CLEAR}_$accountId", "") ?: ""
@@ -87,5 +109,6 @@ class Prefs(context: Context) {
         private const val KEY_MONITOR = "monitor_enabled"
         private const val KEY_VOICE = "voice_on_distraction"
         private const val KEY_LAST_AUTO_CLEAR = "last_auto_clear_date"
+        private const val KEY_MONITOR_PROFILE = "monitor_profile_"
     }
 }
