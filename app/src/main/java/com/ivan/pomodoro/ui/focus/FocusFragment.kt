@@ -181,12 +181,12 @@ class FocusFragment : Fragment() {
     private fun updateMonitorHints(plan: FocusPlan?) {
         val paper = plan?.taskMode == FocusPlan.TASK_PAPER
         binding.tvMonitorHint.text = if (paper) {
-            "看得到手和头发算专注，画面上看不到人才算分心"
+            "笔在动、手在动算专注，画面长时间不动才算分心"
         } else {
             "持续离开镜头才会判定本次未通过"
         }
         binding.tvMonitorRuleHint.text = if (paper) {
-            "纸面任务：低头书写、看不到脸都是常态，只要画面里还有手、头发或笔在动就算专注；画面里看不到人（离座）才会提示分心。画面仅本机分析，不保存不上传。"
+            "纸面任务：低头书写、看不到脸都是常态，只要画面里还有笔或手在动就算专注；画面长时间没有动静（离座）才会提示分心。画面仅本机分析，不保存不上传。"
         } else {
             "前置正对：低头看书、闭眼只做提醒；后置俯拍：手机架高朝下，离开座位才算分心。画面仅本机分析，不保存不上传。"
         }

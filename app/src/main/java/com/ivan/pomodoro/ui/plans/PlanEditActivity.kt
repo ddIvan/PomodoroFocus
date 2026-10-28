@@ -115,7 +115,7 @@ class PlanEditActivity : AppCompatActivity() {
 
     private fun updateTaskHint(taskMode: Int) {
         binding.tvTaskHint.text = if (taskMode == FocusPlan.TASK_PAPER) {
-            "写作业、看书：低头书写算专注；俯拍时看得到手和头发就不判分心，画面里看不到人才提示"
+            "写作业、看书：低头书写算专注；俯拍时笔和手在动就不判分心，画面长时间没动静才提示"
         } else {
             "看网课、看视频：面部朝向屏幕才算专注，低头、闭眼只提醒"
         }

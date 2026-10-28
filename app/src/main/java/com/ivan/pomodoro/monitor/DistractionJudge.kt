@@ -38,7 +38,7 @@ class DistractionJudge(
     )
 
     private var noFaceSince = 0L
-    private var absentSince = 0L
+    private var quietSince = 0L
     private var instantDistracted = false
     private var instantSevere = false
     private var instantEscalateMs = 0L
@@ -50,7 +50,7 @@ class DistractionJudge(
 
     fun reset() {
         noFaceSince = 0L
-        absentSince = 0L
+        quietSince = 0L
         instantDistracted = false
         instantSevere = false
         instantEscalateMs = 0L
@@ -62,21 +62,19 @@ class DistractionJudge(
     }
 
     /**
-     * @param presence 画面中"人"（手/头发/头顶）的占比，0~1；小于 0 表示本次没有该数据。
-     * @param motion 相邻两帧的画面变化量，0~1；小于 0 表示本次没有该数据。
+     * @param motionActive 画面中"显著变化"的采样格占比，0~1；小于 0 表示本次没有该数据。
      */
     fun evaluate(
         faces: List<Face>,
         now: Long,
         imageWidth: Int = 0,
         imageHeight: Int = 0,
-        presence: Float = -1f,
-        motion: Float = -1f
+        motionActive: Float = -1f
     ): Verdict {
         lastNote = ""
         if (faces.isEmpty()) {
             if (noFaceSince == 0L) noFaceSince = now
-            judgeNoFace(now - noFaceSince, now, presence, motion)
+            judgeNoFace(now - noFaceSince, now, motionActive)
         } else {
             noFaceSince = 0L
             val face = faces.maxByOrNull {
@@ -121,14 +119,14 @@ class DistractionJudge(
 
     // ---------------------------------------------------------------- 无人脸
 
-    private fun judgeNoFace(gap: Long, now: Long, presence: Float = -1f, motion: Float = -1f) {
+    private fun judgeNoFace(gap: Long, now: Long, motionActive: Float = -1f) {
         when (mode) {
             Mode.OVERHEAD -> when {
-                // 纸面俯拍：看不到脸是常态（低头只有头发），只看画面里还有没有手/头发
-                task == Task.PAPER && presence >= 0f ->
-                    judgePaperOverheadPresence(presence, motion, now)
+                // 纸面俯拍：看不到脸是常态（低头只剩手和头发），只看画面里还有没有东西在动
+                task == Task.PAPER && motionActive >= 0f ->
+                    judgePaperOverheadMotion(motionActive, now)
 
-                // 拿不到分割结果时退回旧策略：完全静默
+                // 拿不到画面数据时退回静默：宁可漏报，也不误报
                 task == Task.PAPER -> markInstant(false, false, "", 0L, now)
 
                 gap >= OVERHEAD_SEVERE_NO_FACE_MS ->
@@ -154,38 +152,42 @@ class DistractionJudge(
         }
     }
 
-    // ---------------------------------------------------------------- 前置正对
-
     /**
-     * 纸面俯拍：满足任一条件即认为人还在写作业——不提示。
-     * - 画面里能看到手/头发/头顶（人像分割前景占比够）；
-     * - 画面有明显变化（笔在动、身体在动），分割漏检时兜底。
+     * 纸面俯拍：以"画面里有没有东西在动"为唯一判据。
      *
-     * 两个判据都不满足并持续一段时间，才判"看不到你的手和头发"。
+     * 实测（手机平放俯拍桌面）：
+     * - 空桌面：变化格占比 0.00%，噪声峰值也只有 0.26%；
+     * - 手在写字、翻页：变化格占比 11%~78%。
+     *
+     * 人像分割在俯拍桌面误报严重——空桌面也有 22%~27% 的假前景、2.7% 的高置信
+     * 前景，与真实有手时的 3.6% 完全重叠，因此不参与判定。
+     *
+     * 思考、看题时手会短暂停下，所以按"静默持续时长"判定而不是单帧，
+     * 短暂的停顿不会提示。
      */
-    private fun judgePaperOverheadPresence(presence: Float, motion: Float, now: Long) {
-        val hasPerson = presence >= PAPER_PRESENCE_MIN
-        val hasMotion = motion >= PAPER_MOTION_MIN
-        if (hasPerson || hasMotion) {
-            absentSince = 0L
+    private fun judgePaperOverheadMotion(motionActive: Float, now: Long) {
+        if (motionActive >= PAPER_ACTIVE_MIN) {
+            quietSince = now
             markInstant(false, false, "", 0L, now)
             return
         }
-        if (absentSince == 0L) absentSince = now
-        val absent = now - absentSince
+        if (quietSince == 0L) quietSince = now
+        val quiet = now - quietSince
         when {
-            absent >= PAPER_ABSENT_SEVERE_MS ->
-                markInstant(true, true, "长时间看不到你的手和头发，请回到座位", 0L, now)
+            quiet >= PAPER_QUIET_SEVERE_MS ->
+                markInstant(true, true, "画面长时间没有动静，请回到座位继续书写", 0L, now)
 
-            absent >= PAPER_ABSENT_HINT_MS ->
+            quiet >= PAPER_QUIET_HINT_MS ->
                 markInstant(
-                    true, false, "看不到你的手和头发，请回到座位",
-                    PAPER_ABSENT_SEVERE_MS, now
+                    true, false, "画面没有动静，请确认还在写作业",
+                    PAPER_QUIET_SEVERE_MS, now
                 )
 
             else -> markInstant(false, false, "", 0L, now)
         }
     }
+
+    // ---------------------------------------------------------------- 前置正对
 
     /** 盯屏：看着屏幕才算专注 */
     private fun judgeScreenFront(face: Face, now: Long) {
@@ -296,15 +298,15 @@ class DistractionJudge(
         /** 纸面前置：无脸只做提示，不计分心 */
         private const val PAPER_FRONT_NO_FACE_HINT_MS = 60_000L
 
-        /** 纸面俯拍：前景（手/头发）占比达到该值即视为人在画面里 */
-        private const val PAPER_PRESENCE_MIN = 0.02f
+        /**
+         * 纸面俯拍：显著变化格占比达到该值即视为手在动。
+         * 空桌面噪声峰值 0.26%，书写实测 11%~78%，取 1% 留足余量。
+         */
+        private const val PAPER_ACTIVE_MIN = 0.01f
 
-        /** 纸面俯拍：画面变化量达到该值即视为手在动（空桌面静止时约为 0） */
-        private const val PAPER_MOTION_MIN = 0.004f
-
-        /** 纸面俯拍：连续多久看不到人开始提示、多久升级为作废级 */
-        private const val PAPER_ABSENT_HINT_MS = 4_000L
-        private const val PAPER_ABSENT_SEVERE_MS = 45_000L
+        /** 纸面俯拍：画面静止多久开始提示、多久升级为作废级（覆盖思考停顿） */
+        private const val PAPER_QUIET_HINT_MS = 8_000L
+        private const val PAPER_QUIET_SEVERE_MS = 45_000L
 
         private const val HOLD_MS = 1500L
         private const val HEAD_AWAY_YAW = 42f

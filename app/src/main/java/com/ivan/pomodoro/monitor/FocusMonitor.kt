@@ -48,15 +48,17 @@ class FocusMonitor(
             .build()
     )
 
-    /** 纸面俯拍时额外跑人像分割，用"画面里还有没有手/头发"判断人是否还在 */
-    private val presenceDetector: PresenceDetector? =
-        if (lens == Lens.BACK && task == DistractionJudge.Task.PAPER) PresenceDetector() else null
+    /**
+     * 纸面 + 后置俯拍：画面里通常看不到脸，只能看到手、笔和头发，
+     * 这时唯一可靠的信号是"画面里还有没有东西在动"。
+     */
+    private val trackMotion = lens == Lens.BACK && task == DistractionJudge.Task.PAPER
 
     private var cameraProvider: ProcessCameraProvider? = null
     private var imageAnalysis: ImageAnalysis? = null
     private var executor: ExecutorService? = null
     private var lastAnalyzeAt = 0L
-    private var lastPresence = -1f
+    private var lastMotionStats = floatArrayOf(-1f, -1f, -1f)
     private var lastLuma: ByteArray? = null
     private var started = false
     private var closed = false
@@ -117,7 +119,6 @@ class FocusMonitor(
         executor?.shutdown()
         executor = null
         runCatching { detector.close() }
-        presenceDetector?.close()
         judge.reset()
     }
 
@@ -142,9 +143,9 @@ class FocusMonitor(
         val mainExecutor = ContextCompat.getMainExecutor(context)
         val frameWidth = proxy.width
         val frameHeight = proxy.height
-        val segmenter = presenceDetector
         // 画面活动必须在本帧关闭前取样
-        val motion = if (segmenter == null) -1f else motionOf(proxy)
+        lastMotionStats = if (trackMotion) motionStats(proxy) else floatArrayOf(-1f, -1f, -1f)
+        val motionActive = lastMotionStats[1]
 
         detector.process(InputImage.fromMediaImage(mediaImage, rotation))
             .addOnCompleteListener(mainExecutor) { faceTask ->
@@ -152,39 +153,27 @@ class FocusMonitor(
                     Log.w(TAG, "人脸检测失败", faceTask.exception)
                 }
                 val faces = faceTask.result ?: emptyList()
-                if (closed || segmenter == null) {
-                    dispatch(faces, frameWidth, frameHeight, -1f, -1f)
-                    proxy.close()
-                    return@addOnCompleteListener
-                }
-                // 同一帧再跑一次人像分割：face proxy 尚未关闭，底图仍然有效
-                segmenter.process(InputImage.fromMediaImage(mediaImage, rotation))
-                    .addOnSuccessListener(mainExecutor) { mask ->
-                        lastPresence = PresenceDetector.foregroundRatio(mask)
-                    }
-                    .addOnFailureListener(mainExecutor) { e ->
-                        lastPresence = -1f
-                        Log.w(TAG, "人像分割失败", e)
-                    }
-                    .addOnCompleteListener(mainExecutor) {
-                        dispatch(faces, frameWidth, frameHeight, lastPresence, motion)
-                        proxy.close()
-                    }
+                dispatch(faces, frameWidth, frameHeight, motionActive)
+                proxy.close()
             }
     }
 
     /**
-     * 帧间亮度差：把画面降采样成小网格，与上一帧比较平均绝对差。
-     * 用来区分"手在动（在写字）"和"桌面完全静止（人走了）"。
+     * 帧间亮度差：把画面降采样成小网格，与上一帧比较。
+     * 返回 [平均绝对差, 显著变化格占比(帧差≥20), 最大格差/255]。
+     *
+     * 平均值会被全图噪声稀释，显著变化格占比才是"局部有东西在动"的证据：
+     * 空桌面只有 1~2 个灰度级的随机噪声，几乎没有格能超过 20；
+     * 手在写字时总有一小片区域灰度剧烈变化。
      */
-    private fun motionOf(proxy: ImageProxy): Float {
-        val plane = proxy.planes.firstOrNull() ?: return -1f
+    private fun motionStats(proxy: ImageProxy): FloatArray {
+        val plane = proxy.planes.firstOrNull() ?: return floatArrayOf(-1f, -1f, -1f)
         val buffer = plane.buffer
         val rowStride = plane.rowStride
         val pixelStride = plane.pixelStride
         val w = proxy.width
         val h = proxy.height
-        if (w <= 0 || h <= 0 || buffer.capacity() <= 0) return -1f
+        if (w <= 0 || h <= 0 || buffer.capacity() <= 0) return floatArrayOf(-1f, -1f, -1f)
 
         val grid = ByteArray(GRID_W * GRID_H)
         for (gy in 0 until GRID_H) {
@@ -199,30 +188,43 @@ class FocusMonitor(
         }
         val previous = lastLuma
         lastLuma = grid
-        if (previous == null || previous.size != grid.size) return 0f
+        if (previous == null || previous.size != grid.size) return floatArrayOf(0f, 0f, 0f)
         var sum = 0
+        var active = 0
+        var maxDiff = 0
         for (i in grid.indices) {
-            sum += kotlin.math.abs((grid[i].toInt() and 0xFF) - (previous[i].toInt() and 0xFF))
+            val diff = kotlin.math.abs(
+                (grid[i].toInt() and 0xFF) - (previous[i].toInt() and 0xFF)
+            )
+            sum += diff
+            if (diff >= ACTIVE_DIFF) active++
+            if (diff > maxDiff) maxDiff = diff
         }
-        return sum.toFloat() / (grid.size * 255f)
+        return floatArrayOf(
+            sum.toFloat() / (grid.size * 255f),
+            active.toFloat() / grid.size,
+            maxDiff / 255f
+        )
     }
 
     private fun dispatch(
         faces: List<com.google.mlkit.vision.face.Face>,
         width: Int,
         height: Int,
-        presence: Float,
-        motion: Float
+        motionActive: Float
     ) {
         if (closed) return
         val verdict = judge.evaluate(
-            faces, SystemClock.elapsedRealtime(), width, height, presence, motion
+            faces, SystemClock.elapsedRealtime(), width, height, motionActive
         )
-        if (presence >= 0f) {
+        if (motionActive >= 0f) {
             Log.d(
                 TAG,
-                "前景占比=%.3f 画面活动=%.4f 判分心=%s".format(
-                    presence, motion.coerceAtLeast(0f), verdict.distracted
+                "画面活动=%.4f 变化格=%.2f%% 峰值=%.3f 判分心=%s".format(
+                    lastMotionStats[0].coerceAtLeast(0f),
+                    motionActive * 100f,
+                    lastMotionStats[2].coerceAtLeast(0f),
+                    verdict.distracted
                 )
             )
         }
@@ -235,5 +237,8 @@ class FocusMonitor(
         /** 活动检测的降采样网格 */
         private const val GRID_W = 32
         private const val GRID_H = 24
+
+        /** 判定为"这一格真的在变"的最小灰度差 */
+        private const val ACTIVE_DIFF = 20
     }
 }
