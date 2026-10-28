@@ -6,7 +6,7 @@ import com.ivan.pomodoro.data.dao.FocusSessionDao
 import com.ivan.pomodoro.data.entity.Account
 import com.ivan.pomodoro.data.entity.FocusSession
 
-/** 管理员视角的跨账户数据访问：汇总、明细、清理与删除。 */
+/** 管理员视角的跨账户数据访问：汇总、番茄管理、清理与删除。 */
 class AdminRepository(
     private val accountDao: AccountDao,
     private val planDao: FocusPlanDao,
@@ -29,8 +29,22 @@ class AdminRepository(
         )
     }
 
-    suspend fun recentSessions(accountId: Long, limit: Int = 10): List<FocusSession> =
-        sessionDao.recentOf(accountId, limit)
+    /** 某账户某天的番茄，按开始时间正序，便于按"第几个"定位 */
+    data class DayTomatoes(val dateKey: String, val sessions: List<FocusSession>) {
+        val count: Int get() = sessions.size
+        val minutes: Int get() = sessions.sumOf { it.actualSeconds } / 60
+    }
+
+    /** 某账户全部番茄，按日期倒序分组（日期内按时间正序） */
+    suspend fun tomatoesByDay(accountId: Long): List<DayTomatoes> =
+        sessionDao.completedOf(accountId)
+            .groupBy { it.dateKey }
+            .map { (dateKey, list) -> DayTomatoes(dateKey, list.sortedBy { it.startTime }) }
+            .sortedByDescending { it.dateKey }
+
+    /** 删除某账户的一条番茄，返回是否删除成功 */
+    suspend fun deleteTomato(accountId: Long, sessionId: Long): Boolean =
+        sessionDao.deleteOneOf(sessionId, accountId) > 0
 
     /** 清空某账户的全部专注记录，返回删除条数 */
     suspend fun clearSessions(accountId: Long): Int = sessionDao.deleteByAccount(accountId)

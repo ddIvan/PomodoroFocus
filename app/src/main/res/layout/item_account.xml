@@ -72,7 +72,7 @@
                 android:paddingTop="8dp"
                 android:paddingEnd="16dp"
                 android:paddingBottom="8dp"
-                android:text="查看明细"
+                android:text="番茄管理"
                 android:textColor="@color/pomo_primary"
                 android:textSize="13sp" />
 

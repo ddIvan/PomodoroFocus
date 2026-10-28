@@ -137,7 +137,7 @@
         android:layout_marginStart="20dp"
         android:layout_marginTop="14dp"
         android:layout_marginEnd="20dp"
-        android:text="这里是全部账户的数据，可查看明细、清空专注记录或删除账户"
+        android:text="这里是全部账户的数据：点「番茄管理」可按日期查看并删除某个番茄，也可清空专注记录或删除账户"
         android:textColor="@color/pomo_text_second"
         android:textSize="12sp" />
 

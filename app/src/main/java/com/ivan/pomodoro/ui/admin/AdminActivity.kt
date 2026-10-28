@@ -9,15 +9,11 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.ivan.pomodoro.PomodoroApp
 import com.ivan.pomodoro.data.AdminRepository
-import com.ivan.pomodoro.data.entity.FocusSession
 import com.ivan.pomodoro.databinding.ActivityAdminBinding
 import com.ivan.pomodoro.session.AccountManager
 import kotlinx.coroutines.launch
-import java.time.Instant
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
 
-/** 管理员数据管理：查看所有账户的汇总与明细，可清空记录或删除账户 */
+/** 管理员数据管理：跨账户查看番茄数，可按日期管理/删除单个番茄，也可清空记录或删除账户 */
 class AdminActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityAdminBinding
@@ -35,7 +31,7 @@ class AdminActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         adapter = AccountAdapter(
-            onView = { showDetail(it) },
+            onTomatoes = { openTomatoes(it) },
             onClear = { confirmClear(it) },
             onDelete = { confirmDelete(it) }
         )
@@ -66,38 +62,8 @@ class AdminActivity : AppCompatActivity() {
         }
     }
 
-    private fun showDetail(item: AdminRepository.AccountSummary) {
-        lifecycleScope.launch {
-            val sessions = admin.recentSessions(item.account.id, 12)
-            val builder = StringBuilder()
-            builder.append("账号：${item.account.username}（${item.account.roleText()}）\n")
-            builder.append("番茄：${item.tomatoes} 个 · 专注：${item.minutes} 分钟\n")
-            builder.append("计划：${item.planCount} 个\n\n")
-            if (sessions.isEmpty()) {
-                builder.append("暂无专注记录")
-            } else {
-                builder.append("最近记录：\n")
-                sessions.forEach { builder.append(describe(it)).append('\n') }
-            }
-            MaterialAlertDialogBuilder(this@AdminActivity)
-                .setTitle("账户数据")
-                .setMessage(builder.toString().trimEnd())
-                .setPositiveButton("关闭", null)
-                .show()
-        }
-    }
-
-    private fun describe(session: FocusSession): String {
-        val time = Instant.ofEpochMilli(session.startTime)
-            .atZone(ZoneId.systemDefault())
-            .format(DateTimeFormatter.ofPattern("MM-dd HH:mm"))
-        val status = when (session.status) {
-            FocusSession.STATUS_COMPLETED -> "完成"
-            FocusSession.STATUS_INVALID -> "分心未通过"
-            else -> "手动结束"
-        }
-        val task = if (session.taskMode == 1) "纸面" else "盯屏"
-        return "· $time  ${session.actualSeconds / 60} 分钟  $status  $task"
+    private fun openTomatoes(item: AdminRepository.AccountSummary) {
+        startActivity(AdminTomatoesActivity.intent(this, item.account.id, item.account.username))
     }
 
     private fun confirmClear(item: AdminRepository.AccountSummary) {

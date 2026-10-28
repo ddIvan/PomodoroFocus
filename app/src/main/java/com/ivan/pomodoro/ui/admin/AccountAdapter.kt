@@ -7,7 +7,7 @@ import com.ivan.pomodoro.data.AdminRepository
 import com.ivan.pomodoro.databinding.ItemAccountBinding
 
 class AccountAdapter(
-    private val onView: (AdminRepository.AccountSummary) -> Unit,
+    private val onTomatoes: (AdminRepository.AccountSummary) -> Unit,
     private val onClear: (AdminRepository.AccountSummary) -> Unit,
     private val onDelete: (AdminRepository.AccountSummary) -> Unit
 ) : RecyclerView.Adapter<AccountAdapter.VH>() {
@@ -36,7 +36,7 @@ class AccountAdapter(
             b.tvUsername.text = item.account.username
             b.tvRole.text = item.account.roleText()
             b.tvStats.text = "番茄 ${item.tomatoes} 个 · 专注 ${item.minutes} 分钟 · 计划 ${item.planCount} 个"
-            b.btnView.setOnClickListener { onView(item) }
+            b.btnView.setOnClickListener { onTomatoes(item) }
             b.btnClear.setOnClickListener { onClear(item) }
             b.btnDelete.setOnClickListener { onDelete(item) }
         }

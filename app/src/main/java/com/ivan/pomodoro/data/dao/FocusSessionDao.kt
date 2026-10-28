@@ -77,9 +77,13 @@ interface FocusSessionDao {
     @Query("SELECT IFNULL(SUM(actualSeconds), 0) FROM focus_sessions WHERE status = 0 AND accountId = :accountId")
     suspend fun sumSecondsOf(accountId: Long): Int
 
-    /** 某账户最近的记录明细 */
-    @Query("SELECT * FROM focus_sessions WHERE accountId = :accountId ORDER BY startTime DESC LIMIT :limit")
-    suspend fun recentOf(accountId: Long, limit: Int): List<FocusSession>
+    /** 管理端：某账户全部番茄（只取计入统计的完成记录），按开始时间倒序 */
+    @Query("SELECT * FROM focus_sessions WHERE status = 0 AND accountId = :accountId ORDER BY startTime DESC")
+    suspend fun completedOf(accountId: Long): List<FocusSession>
+
+    /** 管理端：精确删除某账户的一条番茄 */
+    @Query("DELETE FROM focus_sessions WHERE id = :id AND accountId = :accountId")
+    suspend fun deleteOneOf(id: Long, accountId: Long): Int
 
     /** 管理端：清空某账户的全部专注记录 */
     @Query("DELETE FROM focus_sessions WHERE accountId = :accountId")
