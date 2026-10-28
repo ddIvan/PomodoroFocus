@@ -61,6 +61,11 @@
             android:screenOrientation="portrait" />
 
         <activity
+            android:name=".ui.about.AboutActivity"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+
+        <activity
             android:name=".ui.session.FocusSessionActivity"
             android:exported="false"
             android:launchMode="singleTop"

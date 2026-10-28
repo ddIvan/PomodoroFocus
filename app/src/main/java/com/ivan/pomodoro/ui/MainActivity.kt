@@ -19,6 +19,7 @@ import com.ivan.pomodoro.databinding.ActivityMainBinding
 import com.ivan.pomodoro.monitor.MonitorScene
 import com.ivan.pomodoro.session.AccountManager
 import com.ivan.pomodoro.session.FocusSessionManager
+import com.ivan.pomodoro.ui.about.AboutActivity
 import com.ivan.pomodoro.ui.admin.AdminActivity
 import com.ivan.pomodoro.ui.focus.FocusFragment
 import com.ivan.pomodoro.ui.login.ChangePasswordDialog
@@ -170,6 +171,11 @@ class MainActivity : AppCompatActivity() {
 
                 R.id.action_admin -> {
                     startActivity(Intent(this, AdminActivity::class.java))
+                    true
+                }
+
+                R.id.action_about -> {
+                    startActivity(Intent(this, AboutActivity::class.java))
                     true
                 }
 
