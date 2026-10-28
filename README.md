@@ -4,7 +4,7 @@
 所有数据存放在本机 Room 数据库，人脸识别用 ML Kit 离线模型在设备内完成，画面活动检测为本地像素统计，**不联网、不保存、不上传任何画面**。
 
 - 包名：`com.ivan.pomodoro`
-- 版本：1.0（versionCode 1）
+- 版本：1.1（versionCode 2）
 - 最低系统：Android 8.0（minSdk 26），targetSdk 34
 
 ---
@@ -34,7 +34,6 @@
 
 | 账号 | 口令 | 角色 | 预置数据 |
 | --- | --- | --- | --- |
-| `zhengfy` | `123456` | 普通用户 | 2026-10-27 的 2 个已完成番茄（该日不足 2 个时补齐，升级用户已有的真实记录优先保留） |
 | `admin` | `123456` | 管理员 | 无，用于管理全部账户数据 |
 
 ### 2. 登录、注册与修改密码
@@ -378,17 +377,7 @@ app/src/main/java/com/ivan/pomodoro/
 # 产物：app/build/outputs/apk/release/app-release.apk
 ```
 
-### 签名配置
 
-- 密钥库：`keystore/ivan.jks`，别名 `ivan`，算法 RSA 2048 / SHA256withRSA，有效期 30 年。
-- 口令放在项目根的 `keystore.properties`（已加入 `.gitignore`，不要提交）：
-
-```properties
-storeFile=keystore/ivan.jks
-storePassword=ivan@123
-keyAlias=ivan
-keyPassword=ivan@123
-```
 
 - `app/build.gradle` 中的 `signingConfigs.release` 从该文件读取；缺失时 `assembleRelease` 退化为未签名包，不影响其他构建。
 - Release 包启用 v2 + v3 签名（minSdk 26 下 v1 由 AGP 跳过，属正常）。

@@ -130,6 +130,7 @@ object FocusSessionManager {
             message = ""
         )
 
+
         handler.removeCallbacks(ticker)
         handler.post(ticker)
 
@@ -396,13 +397,25 @@ object FocusSessionManager {
             SessionPhase.INVALID -> FocusSession.STATUS_INVALID
             else -> FocusSession.STATUS_ABANDONED
         }
-        saveSession(status, actualSeconds, reason)
+        saveSession(st, status, actualSeconds, reason)
     }
 
-    private fun saveSession(status: Int, actualSeconds: Int, reason: String) {
+    /**
+     * 保存结算记录。
+     *
+     * 必须用 finish() 捕获的状态快照，不能在这里回读 `_state.value`：
+     * 上面那次 `_state.value = copy(phase = ...)` 会同步唤醒界面上的收集者，
+     * 界面看到"已结束"就会调 reset() 把状态清空，等执行到这里时回读只能拿到空状态，
+     * 记录就会变成 planId=0、plannedSeconds=0。
+     */
+    private fun saveSession(
+        st: SessionUiState,
+        status: Int,
+        actualSeconds: Int,
+        reason: String
+    ) {
         val repo = repository ?: return
         if (!saving.compareAndSet(false, true)) return
-        val st = _state.value
         val dateKey = Instant.ofEpochMilli(sessionStartWall)
             .atZone(ZoneId.systemDefault())
             .toLocalDate()

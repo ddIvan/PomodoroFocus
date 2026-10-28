@@ -1,6 +1,7 @@
 package com.ivan.pomodoro.ui.session
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.view.WindowManager
@@ -16,12 +17,12 @@ import androidx.lifecycle.repeatOnLifecycle
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.ivan.pomodoro.PomodoroApp
 import com.ivan.pomodoro.R
-import com.ivan.pomodoro.data.entity.FocusPlan
 import com.ivan.pomodoro.databinding.ActivityFocusSessionBinding
 import com.ivan.pomodoro.monitor.FocusMonitor
 import com.ivan.pomodoro.session.FocusSessionManager
 import com.ivan.pomodoro.session.SessionPhase
 import com.ivan.pomodoro.session.SessionUiState
+import com.ivan.pomodoro.ui.MainActivity
 import com.ivan.pomodoro.util.TimeUtils
 import kotlinx.coroutines.launch
 
@@ -40,14 +41,12 @@ class FocusSessionActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityFocusSessionBinding
     private var monitor: FocusMonitor? = null
-    private var currentPlan: FocusPlan? = null
     private var resultShown = false
     private var permissionRequested = false
     private var lastMonitorEnabled = false
     private var distractionWarned = false
     private var lastLens = com.ivan.pomodoro.data.Prefs.LENS_FRONT
     private var abandonDialog: androidx.appcompat.app.AlertDialog? = null
-    private var resultDialog: androidx.appcompat.app.AlertDialog? = null
     private var tts: android.speech.tts.TextToSpeech? = null
     private var ttsReady = false
     private var ttsInited = false
@@ -123,7 +122,6 @@ class FocusSessionActivity : AppCompatActivity() {
                 finish()
                 return@launch
             }
-            currentPlan = plan
             lastMonitorEnabled = monitorEnabled
             FocusSessionManager.startSession(plan, monitorEnabled, plan.strictness)
         }
@@ -179,8 +177,6 @@ class FocusSessionActivity : AppCompatActivity() {
         monitor = null
         abandonDialog?.dismiss()
         abandonDialog = null
-        resultDialog?.dismiss()
-        resultDialog = null
         runCatching {
             tts?.stop()
             tts?.shutdown()
@@ -489,63 +485,42 @@ class FocusSessionActivity : AppCompatActivity() {
             .show()
     }
 
+    /**
+     * 结束收尾：不弹结果对话框（因此也没有"再专注一次"），
+     * 只用一条 Toast 说明结果，然后直接回到首页。
+     */
     private fun showResult(st: SessionUiState) {
         if (resultShown) return
         resultShown = true
 
-        // 完成一个完整时段时先报喜，再弹结果框
+        // 完成一个完整时段时先报喜
         if (st.phase == SessionPhase.COMPLETED) speakComplete()
 
-        val title = when (st.phase) {
-            SessionPhase.COMPLETED -> "完成一个番茄"
-            SessionPhase.INVALID -> "本次专注未计入番茄"
-            else -> "本次专注已结束"
-        }
         val message = when (st.phase) {
             SessionPhase.COMPLETED ->
-                "「${st.planName}」专注 ${st.plannedSeconds / 60} 分钟，收获 1 个番茄。"
+                "「${st.planName}」专注 ${st.plannedSeconds / 60} 分钟，收获 1 个番茄"
 
             SessionPhase.INVALID ->
-                st.message.ifBlank { "检测到持续分心，本次专注不计入番茄。" }
+                st.message.ifBlank { "检测到持续分心，本次专注不计入番茄" }
 
             else ->
-                "本次专注了 ${st.elapsedSeconds / 60} 分钟，未完成完整时段，不计入番茄。"
+                "本次专注 ${st.elapsedSeconds / 60} 分钟，未计入番茄"
         }
+        Toast.makeText(this, message, Toast.LENGTH_LONG).show()
 
-        if (isFinishing || isDestroyed) return
-        resultDialog = MaterialAlertDialogBuilder(this)
-            .setTitle(title)
-            .setMessage(message)
-            .setCancelable(false)
-            .setPositiveButton("返回首页") { _, _ ->
-                FocusSessionManager.reset()
-                finish()
-            }
-            .setNegativeButton("再专注一次") { _, _ -> restartSession() }
-            .show()
-    }
-
-    private fun restartSession() {
-        val plan = currentPlan
-        val planId = FocusSessionManager.state.value.planId
-        val monitorEnabled = lastMonitorEnabled
-        resultShown = false
-        permissionRequested = false
-        distractionWarned = false
         FocusSessionManager.reset()
+        if (isFinishing || isDestroyed) return
 
-        if (plan != null) {
-            FocusSessionManager.startSession(plan, monitorEnabled, plan.strictness)
-            return
-        }
-        lifecycleScope.launch {
-            val loaded = (application as PomodoroApp).repository.getPlan(planId)
-            if (loaded == null) {
-                finish()
-            } else {
-                currentPlan = loaded
-                FocusSessionManager.startSession(loaded, monitorEnabled, loaded.strictness)
-            }
-        }
+        // 完成播报是异步的，留出起播时间再退出，否则 onDestroy 里的 stop 会把它掐断
+        val delay = if (st.phase == SessionPhase.COMPLETED && prefs.voiceOnComplete) 1600L else 0L
+        binding.root.postDelayed({
+            if (isFinishing || isDestroyed) return@postDelayed
+            // 从通知进入时栈里可能没有首页，显式拉起，保证结束一定落到首页
+            startActivity(
+                Intent(this, MainActivity::class.java)
+                    .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+            )
+            finish()
+        }, delay)
     }
 }
