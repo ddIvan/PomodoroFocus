@@ -14,6 +14,7 @@ import androidx.lifecycle.LifecycleOwner
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.face.FaceDetection
 import com.google.mlkit.vision.face.FaceDetectorOptions
+import java.util.concurrent.CancellationException
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
@@ -61,6 +62,9 @@ class FocusMonitor(
     private var lastMotionStats = floatArrayOf(-1f, -1f, -1f)
     private var lastLuma: ByteArray? = null
     private var started = false
+
+    /** 分析线程与主线程都会读写，必须 volatile，否则退出时可能有帧漏进已关闭的回调 */
+    @Volatile
     private var closed = false
 
     fun start() {
@@ -119,6 +123,9 @@ class FocusMonitor(
         executor?.shutdown()
         executor = null
         runCatching { detector.close() }
+        // 清掉上一帧缓存，避免重新开始专注时首帧被当成剧烈运动
+        lastLuma = null
+        lastMotionStats = floatArrayOf(-1f, -1f, -1f)
         judge.reset()
     }
 
@@ -143,19 +150,50 @@ class FocusMonitor(
         val mainExecutor = ContextCompat.getMainExecutor(context)
         val frameWidth = proxy.width
         val frameHeight = proxy.height
-        // 画面活动必须在本帧关闭前取样
-        lastMotionStats = if (trackMotion) motionStats(proxy) else floatArrayOf(-1f, -1f, -1f)
+        // 画面活动必须在本帧关闭前取样；退出瞬间画面被回收也只会得到"无数据"
+        lastMotionStats = try {
+            if (trackMotion) motionStats(proxy) else floatArrayOf(-1f, -1f, -1f)
+        } catch (e: Throwable) {
+            Log.w(TAG, "帧差计算失败", e)
+            floatArrayOf(-1f, -1f, -1f)
+        }
         val motionActive = lastMotionStats[1]
 
-        detector.process(InputImage.fromMediaImage(mediaImage, rotation))
-            .addOnCompleteListener(mainExecutor) { faceTask ->
-                if (!faceTask.isSuccessful) {
-                    Log.w(TAG, "人脸检测失败", faceTask.exception)
+        // 退出专注时 detector 已被关闭，此时再提交会抛异常，这一帧直接丢弃
+        val task = try {
+            detector.process(InputImage.fromMediaImage(mediaImage, rotation))
+        } catch (e: Throwable) {
+            Log.w(TAG, "人脸检测提交失败", e)
+            null
+        }
+        if (task == null) {
+            proxy.close()
+            return
+        }
+
+        task.addOnCompleteListener(mainExecutor) { faceTask ->
+            // 任务被取消（退出监控）时 getResult() 会抛 CancellationException，
+            // 必须先判 isSuccessful，再兜一层异常，避免闪退
+            val faces = try {
+                if (faceTask.isSuccessful) {
+                    faceTask.result ?: emptyList()
+                } else {
+                    if (faceTask.exception !is CancellationException) {
+                        Log.w(TAG, "人脸检测失败", faceTask.exception)
+                    }
+                    emptyList()
                 }
-                val faces = faceTask.result ?: emptyList()
-                dispatch(faces, frameWidth, frameHeight, motionActive)
-                proxy.close()
+            } catch (e: CancellationException) {
+                emptyList()
+            } catch (e: Throwable) {
+                Log.w(TAG, "读取人脸结果失败", e)
+                emptyList()
             }
+            if (!closed) {
+                dispatch(faces, frameWidth, frameHeight, motionActive)
+            }
+            proxy.close()
+        }
     }
 
     /**
