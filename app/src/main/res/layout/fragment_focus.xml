@@ -1,10 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/pomo_bg"
+    android:background="@color/pomo_bg">
+
+<androidx.core.widget.NestedScrollView
+    android:id="@+id/scrollFocus"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
     android:fillViewport="true"
     android:scrollbars="none">
 
@@ -64,6 +69,7 @@
         </LinearLayout>
 
         <LinearLayout
+            android:id="@+id/cardTodayGoal"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="18dp"
@@ -449,3 +455,26 @@
             android:nestedScrollingEnabled="false" />
     </LinearLayout>
 </androidx.core.widget.NestedScrollView>
+
+    <!--
+        获取番茄动画层。番茄要横跨卡片和下方内容飞行，只能挂在根容器上；
+        放在 NestedScrollView 里会跟着内容一起滚动，坐标也会算歪。
+    -->
+    <ImageView
+        android:id="@+id/ivGainTomato"
+        android:layout_width="88dp"
+        android:layout_height="88dp"
+        android:layout_gravity="center"
+        android:contentDescription="@null"
+        android:src="@drawable/potato"
+        android:visibility="invisible" />
+
+    <View
+        android:id="@+id/viewGainRipple"
+        android:layout_width="56dp"
+        android:layout_height="56dp"
+        android:layout_gravity="center"
+        android:background="@drawable/bg_gain_ripple"
+        android:visibility="invisible" />
+
+</FrameLayout>

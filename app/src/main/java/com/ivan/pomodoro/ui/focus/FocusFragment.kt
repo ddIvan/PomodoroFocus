@@ -1,10 +1,15 @@
 package com.ivan.pomodoro.ui.focus
 
+import android.animation.Animator
+import android.animation.AnimatorListenerAdapter
+import android.animation.ValueAnimator
 import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.animation.LinearInterpolator
+import android.view.animation.OvershootInterpolator
 import android.widget.Toast
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
@@ -33,9 +38,21 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.LocalTime
+import kotlin.math.PI
+import kotlin.math.sin
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class FocusFragment : Fragment() {
+
+    private companion object {
+        /** 入账动效总长：弹出 300ms + 飞行 400ms + 波纹与数字收尾 200ms */
+        const val GAIN_TOTAL_MS = 900f
+        const val GAIN_FLIGHT_START = 300f
+        const val GAIN_FLIGHT_MS = 400f
+
+        /** 等数据流把孩子落地的新值推上来再播，超时则按当前值兜底 */
+        const val GAIN_PENDING_MS = 350L
+    }
 
     private var _binding: FragmentFocusBinding? = null
     private val binding get() = _binding!!
@@ -58,6 +75,20 @@ class FocusFragment : Fragment() {
 
     /** 「检测语音」用的引擎实例，离开页面即释放 */
     private var voiceSpeaker: TtsSpeaker? = null
+
+    /** 入账动效进行中：这段时间数字由动画接管，数据流不许覆盖 */
+    private var gainAnimating = false
+
+    /** 已收到「刚完成一个番茄」，在等数据流或超时后开播 */
+    private var gainPending = false
+
+    private var gainAnimator: ValueAnimator? = null
+
+    private val gainWatchdog = Runnable {
+        if (!gainPending) return@Runnable
+        gainPending = false
+        startGainAnimation()
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
@@ -140,6 +171,12 @@ class FocusFragment : Fragment() {
                         todayTomatoes = it
                         updateTodayCard()
                         updateEmptyTodayText()
+                        // 数据到位再开播，避免先按旧值演一遍 0 → 1 再跳成真实值
+                        if (gainPending) {
+                            gainPending = false
+                            binding.root.removeCallbacks(gainWatchdog)
+                            binding.root.postDelayed({ startGainAnimation() }, 60L)
+                        }
                     }
                 }
                 launch {
@@ -257,13 +294,212 @@ class FocusFragment : Fragment() {
     }
 
     private fun updateTodayCard() {
-        binding.tvTodayTomatoes.text = todayTomatoes.toString()
+        // 动画期间数字按自己的节奏走，数据流这时候推上来会把中间态顶掉
+        if (!gainAnimating) binding.tvTodayTomatoes.text = todayTomatoes.toString()
         val target = currentPlan?.dailyTarget ?: 0
         binding.tvTodayTarget.text = if (target > 0) "/ $target 个" else ""
         binding.progressTarget.max = target.coerceAtLeast(1)
         binding.progressTarget.setProgressCompat(
             if (target > 0) todayTomatoes.coerceAtMost(target) else 0, true
         )
+    }
+
+    // ------------------------------------------------------------ 获取番茄动效
+
+    /**
+     * 专注成功结束后由 MainActivity 调用：一枚番茄从页面中部弹起、飞进「今日番茄」，
+     * 落点荡开一圈光晕，数字翻成新值，同时语音报喜。
+     *
+     * 先挂起再等一次数据流：专注页落库和首页订阅之间有时序差，直接播会用旧值演一遍 0 → 1。
+     */
+    fun playTomatoGain() {
+        if (_binding == null) return
+        if (gainAnimating || gainPending) return
+        gainPending = true
+        binding.root.postDelayed(gainWatchdog, GAIN_PENDING_MS)
+    }
+
+    private fun startGainAnimation() {
+        val b = _binding ?: return
+        if (gainAnimating) return
+        // 刚从专注页切回来时布局可能还没测量，等一帧再量坐标
+        if (b.root.width <= 0 || b.root.height <= 0) {
+            b.root.post { startGainAnimation() }
+            return
+        }
+        animateGain(b, todayTomatoes.coerceAtLeast(1))
+    }
+
+    private fun animateGain(b: FragmentFocusBinding, newValue: Int) {
+        val overlay = b.root
+        val tomato = b.ivGainTomato
+        val ripple = b.viewGainRipple
+        val num = b.tvTodayTomatoes
+        val card = b.cardTodayGoal
+        val density = resources.displayMetrics.density
+
+        // 首页可能停在滚动中途，先回到顶部，落点才对得上卡片
+        if (b.scrollFocus.scrollY != 0) b.scrollFocus.scrollTo(0, 0)
+
+        val rootLoc = IntArray(2)
+        val numLoc = IntArray(2)
+        overlay.getLocationOnScreen(rootLoc)
+        num.getLocationOnScreen(numLoc)
+
+        // 落点取数字圆心；飞行体和光晕都按居中布局的初始位置算相对位移
+        val targetCx = numLoc[0] - rootLoc[0] + num.width / 2f
+        val targetCy = numLoc[1] - rootLoc[1] + num.height / 2f
+        val baseX = (overlay.width - tomato.width) / 2f
+        val baseY = (overlay.height - tomato.height) / 2f
+        val endX = targetCx - tomato.width / 2f - baseX
+        val endY = targetCy - tomato.height / 2f - baseY
+
+        // 起点在页面中部偏下，像是从计时区域升起来
+        val startY = overlay.height * 0.12f
+        val lift = 44f * density
+
+        val oldValue = (newValue - 1).coerceAtLeast(0)
+        gainAnimating = true
+        num.text = oldValue.toString()
+        speakGain()
+
+        tomato.visibility = View.VISIBLE
+        tomato.alpha = 0f
+        tomato.rotation = 0f
+        tomato.translationX = 0f
+        tomato.translationY = startY
+        tomato.scaleX = 0.45f
+        tomato.scaleY = 0.45f
+
+        ripple.visibility = View.INVISIBLE
+        ripple.alpha = 0f
+        ripple.translationX = targetCx - ripple.width / 2f - (overlay.width - ripple.width) / 2f
+        ripple.translationY = targetCy - ripple.height / 2f - (overlay.height - ripple.height) / 2f
+        ripple.scaleX = 0.5f
+        ripple.scaleY = 0.5f
+
+        var switched = false
+        val animator = ValueAnimator.ofFloat(0f, GAIN_TOTAL_MS)
+        animator.duration = GAIN_TOTAL_MS.toLong()
+        animator.interpolator = LinearInterpolator()
+        animator.addUpdateListener { va ->
+            val t = va.animatedValue as Float
+
+            // 弹出：先过冲到 1.16 再回落，这一下决定动画有没有"得到东西"的手感
+            var scale: Float
+            var alpha: Float
+            if (t < 200f) {
+                val p = t / 200f
+                scale = 0.45f + (1.16f - 0.45f) * gainOutBack(p, 2.2f)
+                alpha = p
+            } else {
+                val p = ((t - 200f) / 100f).coerceIn(0f, 1f)
+                scale = 1.16f + (1f - 1.16f) * gainOutCubic(p)
+                alpha = 1f
+            }
+
+            var x = 0f
+            var y = startY
+            var rot = 0f
+            if (t > GAIN_FLIGHT_START) {
+                val p = gainInOutCubic(
+                    ((t - GAIN_FLIGHT_START) / GAIN_FLIGHT_MS).coerceIn(0f, 1f)
+                )
+                x = endX * p
+                // 抛物线抬升，直线飞过去会显得很机械
+                y = startY + (endY - startY) * p - sin(p * PI.toFloat()) * lift
+                rot = 18f * p
+                scale += (0.30f - scale) * p
+            }
+            tomato.translationX = x
+            tomato.translationY = y
+            tomato.rotation = rot
+            tomato.scaleX = scale
+            tomato.scaleY = scale
+            tomato.alpha = if (t > 700f) (1f - (t - 700f) / 80f).coerceIn(0f, 1f) else alpha
+
+            // 落点光晕
+            if (t >= 600f) {
+                val p = ((t - 600f) / 280f).coerceIn(0f, 1f)
+                ripple.visibility = View.VISIBLE
+                ripple.alpha = 0.55f * (1f - p)
+                val rs = 0.5f + 1.9f * gainOutCubic(p)
+                ripple.scaleX = rs
+                ripple.scaleY = rs
+            }
+
+            // 卡片被打中的一下回弹
+            val bounce = if (t in 600f..880f) {
+                sin(((t - 600f) / 280f) * PI.toFloat()) * 0.035f
+            } else 0f
+            card.scaleX = 1f + bounce
+            card.scaleY = 1f + bounce
+
+            // 数字翻入，和卡片回弹同一拍
+            if (!switched && t >= 620f) {
+                switched = true
+                num.text = newValue.toString()
+                num.translationY = 24f * density
+                num.alpha = 0.15f
+                num.animate()
+                    .translationY(0f)
+                    .alpha(1f)
+                    .setDuration(260L)
+                    .setInterpolator(OvershootInterpolator(2.2f))
+                    .start()
+            }
+        }
+        animator.addListener(object : AnimatorListenerAdapter() {
+            override fun onAnimationEnd(animation: Animator) {
+                tomato.visibility = View.INVISIBLE
+                ripple.visibility = View.INVISIBLE
+                card.scaleX = 1f
+                card.scaleY = 1f
+                num.translationY = 0f
+                num.alpha = 1f
+                gainAnimating = false
+                gainAnimator = null
+                _binding?.let {
+                    if (todayTomatoes >= newValue) {
+                        updateTodayCard()
+                    } else {
+                        // 数据流还没跟上，先用动画算出的值占位，免得数字倒回旧值跳一下
+                        it.tvTodayTomatoes.text = newValue.toString()
+                    }
+                }
+            }
+        })
+        gainAnimator = animator
+        animator.start()
+    }
+
+    /** 完成一枚番茄的报喜。引擎还没就绪时 TtsSpeaker 会自己排队，这里不等 */
+    private fun speakGain() {
+        if (!prefs.voiceOnComplete) return
+        val ctx = context ?: return
+        val speaker = voiceSpeaker ?: TtsSpeaker(ctx).also { voiceSpeaker = it }
+        speaker.speak("您已获得一个番茄")
+    }
+
+    private fun gainOutCubic(t: Float): Float {
+        val u = 1f - t
+        return 1f - u * u * u
+    }
+
+    private fun gainInOutCubic(t: Float): Float {
+        return if (t < 0.5f) {
+            4f * t * t * t
+        } else {
+            val u = -2f * t + 2f
+            1f - u * u * u / 2f
+        }
+    }
+
+    /** 带过冲的弹性缓动，弹出那一下才有重量 */
+    private fun gainOutBack(t: Float, c1: Float): Float {
+        val c3 = c1 + 1f
+        val u = t - 1f
+        return 1f + c3 * u * u * u + c1 * u * u
     }
 
     private fun confirmClearToday() {
@@ -309,6 +545,11 @@ class FocusFragment : Fragment() {
     }
 
     override fun onDestroyView() {
+        gainAnimator?.cancel()
+        gainAnimator = null
+        gainAnimating = false
+        gainPending = false
+        _binding?.root?.removeCallbacks(gainWatchdog)
         voiceSpeaker?.shutdown()
         voiceSpeaker = null
         super.onDestroyView()

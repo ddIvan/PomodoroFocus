@@ -66,6 +66,14 @@ class Prefs(context: Context) {
         get() = sp.getBoolean(KEY_VOICE, true)
         set(value) = sp.edit { putBoolean(KEY_VOICE, value) }
 
+    /**
+     * 已同意的隐私政策版本，空串表示从未同意。
+     * 存版本而不是布尔值，是为了政策内容出现实质变更时能让老用户重新确认。
+     */
+    var privacyAgreedVersion: String
+        get() = sp.getString(KEY_PRIVACY_AGREED, "") ?: ""
+        set(value) = sp.edit { putString(KEY_PRIVACY_AGREED, value) }
+
     // ---------- 监控参数（按场景各存一份） ----------
 
     /** 读取某场景的监控参数；没改过就用该场景的出厂值 */
@@ -110,5 +118,6 @@ class Prefs(context: Context) {
         private const val KEY_VOICE = "voice_on_distraction"
         private const val KEY_LAST_AUTO_CLEAR = "last_auto_clear_date"
         private const val KEY_MONITOR_PROFILE = "monitor_profile_"
+        private const val KEY_PRIVACY_AGREED = "privacy_agreed_version"
     }
 }

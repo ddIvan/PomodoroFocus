@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingStart="24dp"
+    android:paddingTop="4dp"
+    android:paddingEnd="24dp"
+    android:paddingBottom="4dp">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:lineSpacingExtra="4dp"
+        android:text="欢迎使用「番茄专注管理」。在使用前，请你仔细阅读并同意下面的说明与《隐私政策》。"
+        android:textColor="@color/pomo_text"
+        android:textSize="14sp" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:lineSpacingExtra="4dp"
+        android:text="1. 账号、专注计划与专注记录仅保存在你的手机本地，不会上传服务器，也不会提供给任何第三方。\n\n2. 摄像头仅在你开启「专注监控」并授权后使用，画面只在本机实时判断是否分心，不保存、不上传。\n\n3. 通知权限用于在前台服务通知栏显示倒计时；我们不收集通讯录、短信、位置、设备标识等信息，也未集成广告或统计分析 SDK。"
+        android:textColor="@color/pomo_text_second"
+        android:textSize="14sp" />
+
+    <TextView
+        android:id="@+id/tvPrivacyDetail"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="14dp"
+        android:paddingTop="6dp"
+        android:paddingBottom="6dp"
+        android:text="查看《隐私政策》完整内容"
+        android:textColor="@color/pomo_primary"
+        android:textSize="14sp"
+        android:textStyle="bold" />
+</LinearLayout>

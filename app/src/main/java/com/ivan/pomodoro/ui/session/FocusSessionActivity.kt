@@ -396,18 +396,6 @@ class FocusSessionActivity : AppCompatActivity() {
         speaker.speak("请不要分心")
     }
 
-    /** 完成一个番茄时的语音播报；TTS 可能还没就绪，做几次短延迟重试 */
-    private fun speakComplete(attempt: Int = 0) {
-        if (!prefs.voiceOnComplete) return
-        if (!speaker.isReady) {
-            if (attempt < 6 && !isFinishing && !isDestroyed) {
-                binding.root.postDelayed({ speakComplete(attempt + 1) }, 250L)
-            }
-            return
-        }
-        speaker.speak("您已获得一个番茄")
-    }
-
     private fun confirmAbandon() {
         val st = FocusSessionManager.state.value
         if (!st.isActive) {
@@ -432,8 +420,8 @@ class FocusSessionActivity : AppCompatActivity() {
         if (resultShown) return
         resultShown = true
 
-        // 完成一个完整时段时先报喜
-        if (st.phase == SessionPhase.COMPLETED) speakComplete()
+        // 报喜的语音和入账动效都交给首页一起播，这里只负责把结果说清楚
+        val completed = st.phase == SessionPhase.COMPLETED
 
         val message = when (st.phase) {
             SessionPhase.COMPLETED ->
@@ -445,19 +433,24 @@ class FocusSessionActivity : AppCompatActivity() {
             else ->
                 "本次专注 ${st.elapsedSeconds / 60} 分钟，未计入番茄"
         }
-        Toast.makeText(this, message, Toast.LENGTH_LONG).show()
+        // 完成时首页马上要播入账动效，Toast 用短时长，别在底部压三秒
+        Toast.makeText(
+            this, message, if (completed) Toast.LENGTH_SHORT else Toast.LENGTH_LONG
+        ).show()
 
         FocusSessionManager.reset()
         if (isFinishing || isDestroyed) return
 
-        // 完成播报是异步的，留出起播时间再退出，否则 onDestroy 里的 stop 会把它掐断
-        val delay = if (st.phase == SessionPhase.COMPLETED && prefs.voiceOnComplete) 1600L else 0L
+        // 以前要等 1.6 秒把语音播完才走，用户只能对着结果页发呆；
+        // 现在只留一拍让 Toast 出来，随后立刻回首页看番茄入账。
+        val delay = if (completed) 260L else 0L
         binding.root.postDelayed({
             if (isFinishing || isDestroyed) return@postDelayed
             // 从通知进入时栈里可能没有首页，显式拉起，保证结束一定落到首页
             startActivity(
                 Intent(this, MainActivity::class.java)
                     .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                    .putExtra(MainActivity.EXTRA_TOMATO_GAINED, completed)
             )
             finish()
         }, delay)

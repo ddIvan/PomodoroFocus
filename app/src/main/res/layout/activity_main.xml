@@ -42,15 +42,15 @@
                 android:textSize="11sp" />
         </LinearLayout>
 
-        <TextView
-            android:id="@+id/tvSwitchAccount"
+        <ImageView
+            android:id="@+id/ivAccountMenu"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:background="?attr/selectableItemBackgroundBorderless"
-            android:padding="10dp"
-            android:text="切换账号"
-            android:textColor="@color/pomo_primary"
-            android:textSize="13sp" />
+            android:contentDescription="账号与设置"
+            android:padding="12dp"
+            android:src="@drawable/ic_settings"
+            app:tint="@color/pomo_primary" />
     </LinearLayout>
 
     <androidx.fragment.app.FragmentContainerView

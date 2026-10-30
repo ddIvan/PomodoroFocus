@@ -116,6 +116,36 @@
                     android:textSize="16sp"
                     app:cornerRadius="16dp" />
 
+                <!-- 协议勾选：未勾选时点登录会弹二次确认，勾选后才直接登录 -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <com.google.android.material.checkbox.MaterialCheckBox
+                        android:id="@+id/cbPrivacy"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:minWidth="0dp"
+                        android:minHeight="0dp"
+                        android:paddingStart="2dp"
+                        android:paddingTop="6dp"
+                        android:paddingEnd="8dp"
+                        android:paddingBottom="6dp" />
+
+                    <TextView
+                        android:id="@+id/tvPrivacyTip"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:lineSpacingExtra="2dp"
+                        android:text="我已阅读并同意《隐私政策》"
+                        android:textColor="@color/pomo_text_second"
+                        android:textSize="12sp" />
+                </LinearLayout>
+
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnRegister"
                     style="@style/Widget.Material3.Button.TextButton"
